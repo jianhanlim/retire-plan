@@ -11,16 +11,19 @@ import {
   ReferenceLine,
 } from "recharts";
 import {
-  PRESETS,
-  PRESET_DESCRIPTIONS,
-  presetByKey,
+  PROFILES,
+  PROFILE_DESCRIPTIONS,
+  STRATEGIES,
+  STRATEGY_DESCRIPTIONS,
+  combine,
   simulate,
   malaysiaPreset,
   type Account,
   type ExpenseItem,
   type Liability,
   type Phase,
-  type PresetKey,
+  type ProfileKey,
+  type StrategyKey,
   type SimInput,
 } from "./lib/sim";
 import { exportToXlsx } from "./lib/exportXlsx";
@@ -168,11 +171,19 @@ export default function App() {
     }));
   }
 
+  const [profileKey, setProfileKey] = useState<ProfileKey>("midCareer");
+  const [strategyKey, setStrategyKey] = useState<StrategyKey>("aggressive");
+
   function resetPreset() {
-    setInput(malaysiaPreset());
+    setInput(combine(profileKey, strategyKey));
   }
-  function loadPreset(key: PresetKey) {
-    setInput(presetByKey(key));
+  function applyProfile(k: ProfileKey) {
+    setProfileKey(k);
+    setInput(combine(k, strategyKey));
+  }
+  function applyStrategy(k: StrategyKey) {
+    setStrategyKey(k);
+    setInput(combine(profileKey, k));
   }
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showAllYears, setShowAllYears] = useState(false);
@@ -255,15 +266,30 @@ export default function App() {
         </div>
         <div className="actions actions-primary">
           <label className="preset-picker">
-            <span>Strategy:</span>
-            <select onChange={(e) => loadPreset(e.target.value as PresetKey)} defaultValue="">
-              <option value="" disabled>Load a preset…</option>
-              {(Object.entries(PRESETS) as [PresetKey, string][]).map(([k, label]) => (
-                <option key={k} value={k} title={PRESET_DESCRIPTIONS[k]}>{label}</option>
+            <span>Profile:</span>
+            <select
+              value={profileKey}
+              onChange={(e) => applyProfile(e.target.value as ProfileKey)}
+              title="Who you are: age, accounts, expenses, mortgage"
+            >
+              {(Object.entries(PROFILES) as [ProfileKey, string][]).map(([k, label]) => (
+                <option key={k} value={k} title={PROFILE_DESCRIPTIONS[k]}>{label}</option>
               ))}
             </select>
           </label>
-          <button onClick={resetPreset}>Reset</button>
+          <label className="preset-picker">
+            <span>Strategy:</span>
+            <select
+              value={strategyKey}
+              onChange={(e) => applyStrategy(e.target.value as StrategyKey)}
+              title="How you save: caps, surplus target, transfers"
+            >
+              {(Object.entries(STRATEGIES) as [StrategyKey, string][]).map(([k, label]) => (
+                <option key={k} value={k} title={STRATEGY_DESCRIPTIONS[k]}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <button onClick={resetPreset} title="Reload current Profile × Strategy combo">Reset</button>
         </div>
       </header>
 

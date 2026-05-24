@@ -3,7 +3,8 @@
 import {
   simulate, malaysiaPreset, conservativePreset,
   leanFirePreset, noTopUpPreset,
-  type SimInput,
+  combine, PROFILES, STRATEGIES,
+  type SimInput, type ProfileKey, type StrategyKey,
 } from "./sim";
 import { EXPECTED_SNAPSHOTS } from "./expected-snapshots";
 import {
@@ -319,6 +320,32 @@ console.log("\n== Storage round-trip ==");
   check("Decoder rejects empty", decodeScenarioFromHash("") === null);
   check("Decoder rejects missing fields",
     decodeScenarioFromHash("#s=" + encodeScenarioToHash({ accounts: [] } as unknown as SimInput)) === null);
+}
+
+console.log("\n== Profile × Strategy combo coverage ==");
+{
+  const profileKeys = Object.keys(PROFILES) as ProfileKey[];
+  const strategyKeys = Object.keys(STRATEGIES) as StrategyKey[];
+  let combos = 0;
+  for (const p of profileKeys) {
+    for (const s of strategyKeys) {
+      combos++;
+      const input = combine(p, s);
+      check(`combine(${p}, ${s}) produces valid SimInput`,
+        input.accounts.length > 0 && input.phases.length > 0);
+      const result = simulate(input);
+      check(`combine(${p}, ${s}): sim returns rows`, result.rows.length === (input.endAge - input.startAge + 1));
+      // Math identity check on every row
+      for (const r of result.rows) {
+        const sumBal = r.accounts.reduce((s, a) => s + a.balance, 0);
+        check(
+          `${p}×${s} age ${r.age}: Σ balances == totalAssets`,
+          near(sumBal, r.totalAssets, 1e-6)
+        );
+      }
+    }
+  }
+  console.log(`Verified ${combos} profile×strategy combos (${profileKeys.length}×${strategyKeys.length})`);
 }
 
 console.log("\n== Summary ==");

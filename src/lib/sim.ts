@@ -323,171 +323,304 @@ export function simulate(input: SimInput): SimResult {
   return { rows, runsOutAtAge, peakAge, peakAssets };
 }
 
-// ---------- Sample presets (illustrative numbers; users should customize) ----------
-function baseAccounts(): Account[] {
-  return [
-    { id: "stk", name: "Stocks", balance: 75_000, rate: 0.04, drainOrder: 1 },
-    { id: "asm", name: "ASM", balance: 244_000, rate: 0.05, drainOrder: 2 },
-    { id: "epf", name: "EPF", balance: 200_000, rate: 0.06, drainOrder: 3, maxYearlyTopUp: 100_000 },
-  ];
-}
+// ============================================================================
+// Profile × Strategy model
+// A Profile describes WHO you are (age, accounts, expenses, mortgage, phases).
+// A Strategy describes HOW you save (account caps, surplus target, transfers).
+// Combine them → SimInput.
+// ============================================================================
 
-function baseExpensesAndLiabilities() {
-  const expenses: ExpenseItem[] = [
-    { id: "food", name: "Food", monthly: 750, inflation: 0.05, monthlyCap: 3500 },
-    { id: "ins", name: "Insurance", monthly: 350, inflation: 0.03, monthlyCap: 1000 },
-    { id: "others", name: "Others (shopping/leisure)", monthly: 250, inflation: 0.03, monthlyCap: 1000 },
-    { id: "yt", name: "Subscriptions", monthly: 50, inflation: 0.03, monthlyCap: 200 },
-    { id: "condo", name: "Condo maintenance", monthly: 350, inflation: 0 },
-    { id: "parents", name: "Parents allowance", monthly: 250, inflation: 0 },
-    { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
-    { id: "util", name: "Utilities (TNB/Water)", monthly: 100, inflation: 0 },
-    { id: "fuel", name: "Petrol / EV", monthly: 100, inflation: 0 },
-    { id: "gym", name: "Gym", monthly: 83, inflation: 0 },
-    { id: "tel", name: "Phone/Internet", monthly: 75, inflation: 0 },
-    { id: "veh", name: "Vehicle upkeep", monthly: 42, inflation: 0 },
-    { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
-  ];
-  const liabilities: Liability[] = [
-    { id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 },
-  ];
-  return { expenses, liabilities };
-}
+export type ProfileKey = "freshGrad" | "youngPro" | "midCareer" | "lean" | "preRetire";
+export type StrategyKey = "aggressive" | "conservative" | "noTopUp";
 
-export const PRESETS = {
-  aggressive: "Aggressive Arbitrage",
-  conservative: "Conservative No-Transfer",
-  leanFire: "Lean FIRE (retire at 35)",
-  noTopUp: "No Top-Up (just compound)",
-} as const;
-
-export type PresetKey = keyof typeof PRESETS;
-
-export const PRESET_DESCRIPTIONS: Record<PresetKey, string> = {
-  aggressive: "RM15k/mo income with cascade savings + ASM→EPF arbitrage. Highest end-balance.",
-  conservative: "Same income, no transfers. Simpler mental model.",
-  leanFire: "Frugal lifestyle (food cap RM2k, others minimal). Retire fully at 35 — tests whether spartan living lets you exit the workforce early.",
-  noTopUp: "Zero income forever. Pure 'stop saving today, just compound starting balances and pay expenses.' Baseline stress test.",
+export const PROFILES: Record<ProfileKey, string> = {
+  freshGrad: "Fresh Graduate (18)",
+  youngPro: "Young Professional (25)",
+  midCareer: "Mid Career (31)",
+  lean: "Lean Lifestyle (31)",
+  preRetire: "Pre-Retirement (55)",
 };
 
-export function presetByKey(key: PresetKey): SimInput {
-  switch (key) {
-    case "conservative": return conservativePreset();
-    case "leanFire": return leanFirePreset();
-    case "noTopUp": return noTopUpPreset();
-    default: return malaysiaPreset();
+export const STRATEGIES: Record<StrategyKey, string> = {
+  aggressive: "Aggressive Arbitrage",
+  conservative: "Conservative No-Transfer",
+  noTopUp: "No Top-Up (consume surplus)",
+};
+
+export const PROFILE_DESCRIPTIONS: Record<ProfileKey, string> = {
+  freshGrad: "Just started working. Tiny balances, low salary, no mortgage. Long horizon to compound.",
+  youngPro: "A few years in. Modest balances, mid salary, just got a mortgage.",
+  midCareer: "Established career. Decent balances, RM15k/mo, mortgage halfway through.",
+  lean: "Same income as Mid Career but frugal lifestyle (low food cap). Retire fully at 35.",
+  preRetire: "Final stretch before retirement. High salary, large balances, mortgage almost paid off.",
+};
+
+export const STRATEGY_DESCRIPTIONS: Record<StrategyKey, string> = {
+  aggressive: "EPF capped at RM100k/yr, surplus → EPF, transfer ASM→EPF in retirement (arbitrage 5%→6%).",
+  conservative: "EPF capped at RM100k/yr, surplus → EPF. No transfers — simpler mental model.",
+  noTopUp: "No surplus saving (assumed consumed). Pure stress test of starting balances.",
+};
+
+type ProfileShape = {
+  startAge: number;
+  endAge: number;
+  // Accounts WITHOUT maxYearlyTopUp (that's a strategy concern)
+  accounts: Omit<Account, "maxYearlyTopUp">[];
+  expenses: ExpenseItem[];
+  liabilities: Liability[];
+  // Phases WITHOUT surplusAccountId / transfers (strategy concerns)
+  phases: Omit<Phase, "surplusAccountId" | "transfers">[];
+};
+
+type StrategyShape = {
+  // Caps applied by account id
+  accountCaps: Partial<Record<string, number>>;
+  // Per-phase overrides
+  phaseOverrides: Partial<Record<string, { surplusAccountId?: string; transfers?: Phase["transfers"] }>>;
+};
+
+function combineInternal(p: ProfileShape, s: StrategyShape): SimInput {
+  return {
+    startAge: p.startAge,
+    endAge: p.endAge,
+    accounts: p.accounts.map((a) => ({
+      ...a,
+      maxYearlyTopUp: s.accountCaps[a.id],
+    })),
+    expenses: p.expenses,
+    liabilities: p.liabilities,
+    phases: p.phases.map((ph) => {
+      const ov = s.phaseOverrides[ph.id] ?? {};
+      return { ...ph, surplusAccountId: ov.surplusAccountId, transfers: ov.transfers };
+    }),
+    topUpEarnsSameYearInterest: true,
+    liabilityEndInclusive: true,
+  };
+}
+
+// ----- Profile definitions ---------------------------------------------------
+function profileFreshGrad(): ProfileShape {
+  return {
+    startAge: 18,
+    endAge: 80,
+    accounts: [
+      { id: "stk", name: "Stocks", balance: 0, rate: 0.04, drainOrder: 1 },
+      { id: "asm", name: "ASM", balance: 2_000, rate: 0.05, drainOrder: 2 },
+      { id: "epf", name: "EPF", balance: 5_000, rate: 0.06, drainOrder: 3 },
+    ],
+    expenses: [
+      { id: "food", name: "Food", monthly: 500, inflation: 0.05, monthlyCap: 3500 },
+      { id: "ins", name: "Insurance", monthly: 150, inflation: 0.03, monthlyCap: 1000 },
+      { id: "others", name: "Others", monthly: 200, inflation: 0.03, monthlyCap: 1000 },
+      { id: "yt", name: "Subscriptions", monthly: 30, inflation: 0.03, monthlyCap: 200 },
+      { id: "rent", name: "Rent / room", monthly: 600, inflation: 0.03 },
+      { id: "parents", name: "Parents allowance", monthly: 200, inflation: 0 },
+      { id: "util", name: "Utilities", monthly: 80, inflation: 0 },
+      { id: "fuel", name: "Transport", monthly: 200, inflation: 0 },
+      { id: "tel", name: "Phone/Internet", monthly: 80, inflation: 0 },
+    ],
+    liabilities: [],
+    phases: [
+      { id: "current", name: "Year 0 (Current)", startAge: 18, endAge: 18, monthlyIncome: 0 },
+      { id: "early", name: "Career building", startAge: 19, endAge: 27, monthlyIncome: 3_000, incomeInflation: 0.05 },
+      { id: "mid", name: "Mid career", startAge: 28, endAge: 45, monthlyIncome: 8_000, incomeInflation: 0.03 },
+      { id: "peak", name: "Peak earning", startAge: 46, endAge: 60, monthlyIncome: 15_000, incomeInflation: 0.02 },
+      { id: "retired", name: "Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
+    ],
+  };
+}
+
+function profileYoungPro(): ProfileShape {
+  return {
+    startAge: 25,
+    endAge: 80,
+    accounts: [
+      { id: "stk", name: "Stocks", balance: 5_000, rate: 0.04, drainOrder: 1 },
+      { id: "asm", name: "ASM", balance: 10_000, rate: 0.05, drainOrder: 2 },
+      { id: "epf", name: "EPF", balance: 30_000, rate: 0.06, drainOrder: 3 },
+    ],
+    expenses: [
+      { id: "food", name: "Food", monthly: 700, inflation: 0.05, monthlyCap: 3500 },
+      { id: "ins", name: "Insurance", monthly: 250, inflation: 0.03, monthlyCap: 1500 },
+      { id: "others", name: "Others", monthly: 300, inflation: 0.03, monthlyCap: 1500 },
+      { id: "yt", name: "Subscriptions", monthly: 50, inflation: 0.03, monthlyCap: 200 },
+      { id: "condo", name: "Condo maintenance", monthly: 300, inflation: 0 },
+      { id: "parents", name: "Parents allowance", monthly: 300, inflation: 0 },
+      { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
+      { id: "util", name: "Utilities", monthly: 120, inflation: 0 },
+      { id: "fuel", name: "Petrol / EV", monthly: 200, inflation: 0 },
+      { id: "tel", name: "Phone/Internet", monthly: 100, inflation: 0 },
+    ],
+    liabilities: [
+      { id: "house", name: "Housing loan", monthly: 1_500, inflation: 0, endAge: 55 },
+    ],
+    phases: [
+      { id: "current", name: "Year 0 (Current)", startAge: 25, endAge: 25, monthlyIncome: 0 },
+      { id: "build", name: "Build & save", startAge: 26, endAge: 35, monthlyIncome: 5_000, incomeInflation: 0.04 },
+      { id: "mid", name: "Mid career", startAge: 36, endAge: 50, monthlyIncome: 10_000, incomeInflation: 0.03 },
+      { id: "peak", name: "Peak earning", startAge: 51, endAge: 60, monthlyIncome: 15_000, incomeInflation: 0.02 },
+      { id: "retired", name: "Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
+    ],
+  };
+}
+
+function profileMidCareer(): ProfileShape {
+  // Mirrors the current malaysiaPreset shape (used as default)
+  return {
+    startAge: 31,
+    endAge: 80,
+    accounts: [
+      { id: "stk", name: "Stocks", balance: 75_000, rate: 0.04, drainOrder: 1 },
+      { id: "asm", name: "ASM", balance: 244_000, rate: 0.05, drainOrder: 2 },
+      { id: "epf", name: "EPF", balance: 200_000, rate: 0.06, drainOrder: 3 },
+    ],
+    expenses: [
+      { id: "food", name: "Food", monthly: 750, inflation: 0.05, monthlyCap: 3500 },
+      { id: "ins", name: "Insurance", monthly: 350, inflation: 0.03, monthlyCap: 1000 },
+      { id: "others", name: "Others", monthly: 250, inflation: 0.03, monthlyCap: 1000 },
+      { id: "yt", name: "Subscriptions", monthly: 50, inflation: 0.03, monthlyCap: 200 },
+      { id: "condo", name: "Condo maintenance", monthly: 350, inflation: 0 },
+      { id: "parents", name: "Parents allowance", monthly: 250, inflation: 0 },
+      { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
+      { id: "util", name: "Utilities", monthly: 100, inflation: 0 },
+      { id: "fuel", name: "Petrol / EV", monthly: 100, inflation: 0 },
+      { id: "gym", name: "Gym", monthly: 83, inflation: 0 },
+      { id: "tel", name: "Phone/Internet", monthly: 75, inflation: 0 },
+      { id: "veh", name: "Vehicle upkeep", monthly: 42, inflation: 0 },
+      { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
+    ],
+    liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    phases: [
+      { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
+      { id: "accum", name: "Accumulation", startAge: 32, endAge: 36, monthlyIncome: 15_000, incomeInflation: 0 },
+      { id: "semi", name: "Semi-Retirement", startAge: 37, endAge: 41, monthlyIncome: 3_000, incomeInflation: 0 },
+      { id: "full", name: "Full Retirement", startAge: 42, endAge: 60, monthlyIncome: 0 },
+      { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
+    ],
+  };
+}
+
+function profileLean(): ProfileShape {
+  return {
+    startAge: 31,
+    endAge: 80,
+    accounts: profileMidCareer().accounts,
+    expenses: [
+      { id: "food", name: "Food", monthly: 500, inflation: 0.05, monthlyCap: 2000 },
+      { id: "ins", name: "Insurance", monthly: 250, inflation: 0.03, monthlyCap: 1000 },
+      { id: "others", name: "Others", monthly: 150, inflation: 0.03, monthlyCap: 500 },
+      { id: "yt", name: "Subscriptions", monthly: 30, inflation: 0.03, monthlyCap: 100 },
+      { id: "condo", name: "Condo maintenance", monthly: 350, inflation: 0 },
+      { id: "parents", name: "Parents allowance", monthly: 250, inflation: 0 },
+      { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
+      { id: "util", name: "Utilities", monthly: 100, inflation: 0 },
+      { id: "fuel", name: "Petrol / EV", monthly: 80, inflation: 0 },
+      { id: "gym", name: "Gym", monthly: 50, inflation: 0 },
+      { id: "tel", name: "Phone/Internet", monthly: 60, inflation: 0 },
+      { id: "veh", name: "Vehicle upkeep", monthly: 42, inflation: 0 },
+      { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
+    ],
+    liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    phases: [
+      { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
+      { id: "sprint", name: "FIRE Sprint", startAge: 32, endAge: 35, monthlyIncome: 15_000, incomeInflation: 0 },
+      { id: "retired", name: "Lean Retirement", startAge: 36, endAge: 80, monthlyIncome: 0 },
+    ],
+  };
+}
+
+function profilePreRetire(): ProfileShape {
+  return {
+    startAge: 55,
+    endAge: 90,
+    accounts: [
+      { id: "stk", name: "Stocks", balance: 200_000, rate: 0.04, drainOrder: 1 },
+      { id: "asm", name: "ASM", balance: 400_000, rate: 0.05, drainOrder: 2 },
+      { id: "epf", name: "EPF", balance: 800_000, rate: 0.06, drainOrder: 3 },
+    ],
+    expenses: [
+      { id: "food", name: "Food", monthly: 1200, inflation: 0.05, monthlyCap: 5000 },
+      { id: "ins", name: "Insurance", monthly: 800, inflation: 0.03, monthlyCap: 3000 },
+      { id: "others", name: "Others", monthly: 600, inflation: 0.03, monthlyCap: 2500 },
+      { id: "yt", name: "Subscriptions", monthly: 100, inflation: 0.03, monthlyCap: 400 },
+      { id: "condo", name: "Condo maintenance", monthly: 500, inflation: 0 },
+      { id: "parents", name: "Parents care", monthly: 800, inflation: 0 },
+      { id: "carins", name: "Car insurance", monthly: 350, inflation: 0 },
+      { id: "util", name: "Utilities", monthly: 200, inflation: 0 },
+      { id: "fuel", name: "Petrol / EV", monthly: 200, inflation: 0 },
+      { id: "tel", name: "Phone/Internet", monthly: 150, inflation: 0 },
+    ],
+    liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    phases: [
+      { id: "current", name: "Year 0 (Current)", startAge: 55, endAge: 55, monthlyIncome: 0 },
+      { id: "sprint", name: "Final Sprint", startAge: 56, endAge: 60, monthlyIncome: 18_000, incomeInflation: 0 },
+      { id: "retired", name: "Retirement", startAge: 61, endAge: 90, monthlyIncome: 0 },
+    ],
+  };
+}
+
+export function profileByKey(k: ProfileKey): ProfileShape {
+  switch (k) {
+    case "freshGrad": return profileFreshGrad();
+    case "youngPro": return profileYoungPro();
+    case "lean": return profileLean();
+    case "preRetire": return profilePreRetire();
+    case "midCareer":
+    default: return profileMidCareer();
   }
 }
 
-export function malaysiaPreset(): SimInput {
-  const accounts = baseAccounts();
-  const { expenses, liabilities } = baseExpensesAndLiabilities();
-  const phases: Phase[] = [
-    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
-    {
-      id: "accum", name: "Accumulation", startAge: 32, endAge: 36,
-      monthlyIncome: 15_000, incomeInflation: 0,
-      surplusAccountId: "epf",
-    },
-    {
-      id: "semi", name: "Semi-Retirement", startAge: 37, endAge: 41,
-      monthlyIncome: 3_000, incomeInflation: 0,
-      surplusAccountId: "epf",
-      transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }],
-    },
-    {
-      id: "full", name: "Full Retirement", startAge: 42, endAge: 60,
-      monthlyIncome: 0,
-      transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }],
-    },
-    { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
-  ];
-  return {
-    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
-    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
-  };
+// ----- Strategy definitions --------------------------------------------------
+function strategyAggressive(profile: ProfileShape): StrategyShape {
+  // Find the first phase with income > 0 to anchor "retirement" transfers
+  const incomePhases = profile.phases.filter((p) => p.monthlyIncome > 0);
+  const noIncomePhases = profile.phases.filter((p) => p.monthlyIncome === 0 && p.id !== "current");
+  const overrides: StrategyShape["phaseOverrides"] = {};
+  for (const p of incomePhases) overrides[p.id] = { surplusAccountId: "epf" };
+  // Add ASM→EPF transfer only in retirement (zero-income) phases
+  for (const p of noIncomePhases) overrides[p.id] = { transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }] };
+  return { accountCaps: { epf: 100_000 }, phaseOverrides: overrides };
 }
 
-export function conservativePreset(): SimInput {
-  const accounts = baseAccounts();
-  const { expenses, liabilities } = baseExpensesAndLiabilities();
-  const phases: Phase[] = [
-    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
-    {
-      id: "accum", name: "Accumulation", startAge: 32, endAge: 36,
-      monthlyIncome: 15_000, incomeInflation: 0,
-      surplusAccountId: "epf",
-    },
-    {
-      id: "semi", name: "Semi-Retirement", startAge: 37, endAge: 41,
-      monthlyIncome: 3_000, incomeInflation: 0,
-      surplusAccountId: "epf",
-      // No transfers — money stays where it is, drained in account order
-    },
-    {
-      id: "full", name: "Full Retirement", startAge: 42, endAge: 60,
-      monthlyIncome: 0,
-    },
-    { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
-  ];
-  return {
-    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
-    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
-  };
+function strategyConservative(profile: ProfileShape): StrategyShape {
+  const overrides: StrategyShape["phaseOverrides"] = {};
+  for (const p of profile.phases) {
+    if (p.monthlyIncome > 0) overrides[p.id] = { surplusAccountId: "epf" };
+  }
+  return { accountCaps: { epf: 100_000 }, phaseOverrides: overrides };
 }
 
-// Lean FIRE: aggressive frugality + early full retirement at 35
-export function leanFirePreset(): SimInput {
-  const accounts = baseAccounts();
-  const expenses: ExpenseItem[] = [
-    { id: "food", name: "Food", monthly: 500, inflation: 0.05, monthlyCap: 2000 },
-    { id: "ins", name: "Insurance", monthly: 250, inflation: 0.03, monthlyCap: 1000 },
-    { id: "others", name: "Others", monthly: 150, inflation: 0.03, monthlyCap: 500 },
-    { id: "yt", name: "Subscriptions", monthly: 30, inflation: 0.03, monthlyCap: 100 },
-    { id: "condo", name: "Condo maintenance", monthly: 350, inflation: 0 },
-    { id: "parents", name: "Parents allowance", monthly: 250, inflation: 0 },
-    { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
-    { id: "util", name: "Utilities", monthly: 100, inflation: 0 },
-    { id: "fuel", name: "Petrol / EV", monthly: 80, inflation: 0 },
-    { id: "gym", name: "Gym", monthly: 50, inflation: 0 },
-    { id: "tel", name: "Phone/Internet", monthly: 60, inflation: 0 },
-    { id: "veh", name: "Vehicle upkeep", monthly: 42, inflation: 0 },
-    { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
-  ];
-  const liabilities: Liability[] = [
-    { id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 },
-  ];
-  const phases: Phase[] = [
-    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
-    {
-      id: "sprint", name: "FIRE Sprint", startAge: 32, endAge: 35,
-      monthlyIncome: 15_000, incomeInflation: 0,
-      surplusAccountId: "epf",
-    },
-    {
-      id: "retired", name: "Lean Retirement", startAge: 36, endAge: 80,
-      monthlyIncome: 0,
-    },
-  ];
-  return {
-    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
-    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
-  };
+function strategyNoTopUp(_profile: ProfileShape): StrategyShape {
+  // No caps, no surplus targets — surplus is consumed (lifestyle creep), nothing saved.
+  return { accountCaps: {}, phaseOverrides: {} };
 }
 
-// No Top-Up: zero income, just compound the starting balances and pay expenses
+export function strategyByKey(k: StrategyKey, profile: ProfileShape): StrategyShape {
+  switch (k) {
+    case "conservative": return strategyConservative(profile);
+    case "noTopUp": return strategyNoTopUp(profile);
+    case "aggressive":
+    default: return strategyAggressive(profile);
+  }
+}
+
+export function combine(profileKey: ProfileKey, strategyKey: StrategyKey): SimInput {
+  const p = profileByKey(profileKey);
+  const s = strategyByKey(strategyKey, p);
+  return combineInternal(p, s);
+}
+
+// ----- Back-compat wrappers (so existing tests/snapshots still work) ---------
+// New code should use combine(profile, strategy) directly.
+export function malaysiaPreset(): SimInput { return combine("midCareer", "aggressive"); }
+export function conservativePreset(): SimInput { return combine("midCareer", "conservative"); }
+export function leanFirePreset(): SimInput { return combine("lean", "aggressive"); }
 export function noTopUpPreset(): SimInput {
-  const accounts = baseAccounts();
-  const { expenses, liabilities } = baseExpensesAndLiabilities();
-  const phases: Phase[] = [
-    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
-    {
-      id: "zero", name: "Zero Income (compound only)", startAge: 32, endAge: 80,
-      monthlyIncome: 0,
-    },
-  ];
+  // Stress test: zero income forever (compound starting balances).
+  // Closest profile is midCareer but with all monthlyIncome forced to 0.
+  const base = combine("midCareer", "noTopUp");
   return {
-    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
-    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+    ...base,
+    phases: base.phases.map((p) => ({ ...p, monthlyIncome: 0, surplusAccountId: undefined, transfers: undefined })),
   };
 }
