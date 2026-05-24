@@ -160,14 +160,8 @@ summary.section-header::before {
   padding: 20px;
   box-shadow: var(--shadow-sm);
   margin: 16px 0 24px;
-  overflow: hidden;
-  max-width: 100%;
 }
 .chart-wrap h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
-.chart-wrap .recharts-wrapper,
-.chart-wrap .recharts-responsive-container {
-  max-width: 100% !important;
-}
 
 /* ── Grid of cards ──────────────────────────────────────── */
 .grid {
