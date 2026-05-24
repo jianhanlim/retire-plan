@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useT } from "./lib/i18n";
 
 const LS_KEY = "retire-plan:welcome-dismissed";
 
@@ -11,6 +12,7 @@ export function shouldAutoShowWelcome(): boolean {
 }
 
 export function Welcome({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useT();
   const [dontShow, setDontShow] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -59,53 +61,53 @@ export function Welcome({ open, onClose }: { open: boolean; onClose: () => void 
           ×
         </button>
 
-        <h2 id="welcome-title">How Money Runway works</h2>
-        <p className="welcome-sub">A 30-second tour of the math.</p>
+        <h2 id="welcome-title">{t("How Money Runway works")}</h2>
+        <p className="welcome-sub">{t("A 30-second tour of the math.")}</p>
 
         <div className="flow">
           <div className="flow-row">
-            <span className="flow-box income">💼 Salary</span>
+            <span className="flow-box income">💼 {t("Salary")}</span>
             <span className="flow-arrow">→</span>
-            <span className="flow-box expense">🛒 Expenses + 🏠 Loan</span>
+            <span className="flow-box expense">🛒 {t("Expenses")} + 🏠 {t("Loan")}</span>
           </div>
           <div className="flow-split-line" />
           <div className="flow-row split">
             <div className="flow-col">
-              <div className="flow-label good">✅ Surplus → save</div>
+              <div className="flow-label good">✅ {t("Surplus → save")}</div>
               <div className="flow-box save">
-                EPF (cap RM100k) <br />
-                → ASM → Stocks → Cash
+                EPF ({t("cap")} RM100k) <br />
+                → ASM → {t("Stocks")} → {t("Cash")}
               </div>
             </div>
             <div className="flow-col">
-              <div className="flow-label bad">❌ Shortfall → drain</div>
+              <div className="flow-label bad">❌ {t("Shortfall → drain")}</div>
               <div className="flow-box drain">
-                Cash → Stocks <br />
+                {t("Cash")} → {t("Stocks")} <br />
                 → ASM → EPF
               </div>
             </div>
           </div>
           <div className="flow-footer">
-            Year after year → <b>📈 Asset trajectory chart</b> shows your runway
+            {t("Year after year → ")} <b>📈 {t("Asset trajectory chart")}</b> {t("shows your runway")}
           </div>
         </div>
 
         <div className="welcome-steps">
-          <h3>To use this app:</h3>
+          <h3>{t("To use this app:")}</h3>
           <ol>
             <li>
-              <b>Pick a profile</b> (or skip and edit freely)
+              <b>{t("Pick a profile")}</b> {t("(or skip and edit freely)")}
             </li>
             <li>
-              Tweak the <b>Settings</b>, <b>Your money</b>, <b>Your life</b> sections
+              {t("Tweak the")} <b>{t("Settings")}</b>, <b>{t("Your money")}</b>, <b>{t("Your life")}</b> {t("sections")}
             </li>
             <li>
-              Watch the <b>Results</b> panel update live
+              {t("Watch the")} <b>{t("Results")}</b> {t("panel update live")}
             </li>
           </ol>
         </div>
 
-        <p className="welcome-privacy">🔒 Your data never leaves this browser.</p>
+        <p className="welcome-privacy">{t("🔒 Your data never leaves this browser.")}</p>
 
         <div className="welcome-actions">
           <label className="welcome-dont-show">
@@ -114,10 +116,10 @@ export function Welcome({ open, onClose }: { open: boolean; onClose: () => void 
               checked={dontShow}
               onChange={(e) => setDontShow(e.target.checked)}
             />
-            Don&apos;t show this again
+            {t("Don't show this again")}
           </label>
           <button onClick={finish} className="welcome-primary" type="button">
-            Got it, let&apos;s plan!
+            {t("Got it, let's plan!")}
           </button>
         </div>
       </div>

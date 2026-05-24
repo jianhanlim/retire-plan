@@ -67,6 +67,16 @@ header h1 {
   color: var(--text);
 }
 
+.lang-picker {
+  padding: 6px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text-soft);
+  font-size: 13px; cursor: pointer;
+  transition: border-color 0.15s;
+  min-height: 36px;
+}
+.lang-picker:hover, .lang-picker:focus { border-color: var(--primary); outline: none; }
+
 /* Pickers */
 .preset-picker {
   display: inline-flex; align-items: center; gap: 8px;

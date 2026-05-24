@@ -40,6 +40,7 @@ import {
   scenarioExists,
 } from "./lib/storage";
 import { Welcome, shouldAutoShowWelcome } from "./Welcome";
+import { useT, LANG_NAMES, type Lang } from "./lib/i18n";
 import "./App.css";
 
 const makeFmt = (privacy: boolean) => (n: number) =>
@@ -50,6 +51,7 @@ function uid() {
 }
 
 export default function App() {
+  const { t, lang, setLang } = useT();
   const [input, setInput] = useState<SimInput>(() => {
     // Priority: shared URL → autosave → preset
     if (typeof window !== "undefined" && window.location.hash) {
@@ -401,43 +403,54 @@ export default function App() {
       <header>
         <h1>Money Runway</h1>
         <p className="tagline">
-          A retirement simulator that takes real life seriously.
+          {t("A retirement simulator that takes real life seriously.")}
         </p>
         <p className="why">
-          Most calculators flatten everything to one inflation rate and one savings account. Money Runway models
-          <b> per-line expense inflation</b>, <b>per-account return rates</b>, <b>contribution caps</b> (e.g. EPF RM100k/yr),
-          <b> cascade savings</b> (preferred → next-highest-rate → cash), <b>withdrawal drain order</b>,
-          <b> sellable assets</b> with linked loans, and <b>life-phase income changes</b> (career → semi-retirement → retirement).
-          All math runs in your browser — no signup, no data leaves your device.
+          {t("Most calculators flatten everything to one inflation rate and one savings account. Money Runway models")}
+          <b> {t("per-line expense inflation")}</b>, <b>{t("per-account return rates")}</b>, <b>{t("contribution caps")}</b> {t("(e.g. EPF RM100k/yr)")},
+          <b> {t("cascade savings")}</b> {t("(preferred → next-highest-rate → cash)")}, <b>{t("withdrawal drain order")}</b>,
+          <b> {t("sellable assets")}</b> {t("with linked loans")}, {t("and")} <b>{t("life-phase income changes")}</b> {t("(career → semi-retirement → retirement)")}.
+          {" "}{t("All math runs in your browser — no signup, no data leaves your device.")}
         </p>
         <div className="actions actions-secondary">
-          <button onClick={() => setWelcomeOpen(true)} title="How does this work?" aria-label="Help">
-            ❓ Help
+          <select
+            className="lang-picker"
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Lang)}
+            aria-label="Language"
+            title="Language / Bahasa / 语言"
+          >
+            {(Object.entries(LANG_NAMES) as [Lang, string][]).map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
+            ))}
+          </select>
+          <button onClick={() => setWelcomeOpen(true)} title={t("How does this work?")} aria-label={t("Help")}>
+            ❓ {t("Help")}
           </button>
           <button onClick={() => setPrivacy((p) => !p)} title="Toggle privacy mode">
-            {privacy ? "🔓 Show" : "🔒 Hide"}
+            {privacy ? `🔓 ${t("Show")}` : `🔒 ${t("Hide")}`}
           </button>
-          <button onClick={handleSave} title="Save current scenario to this browser">💾 Save</button>
-          <button onClick={copyShareLink} title="Copy a shareable URL">🔗 Share</button>
-          <button onClick={() => exportToXlsx(input, result)} title="Download year-by-year XLSX">📊 XLSX</button>
+          <button onClick={handleSave} title="Save current scenario to this browser">💾 {t("Save")}</button>
+          <button onClick={copyShareLink} title="Copy a shareable URL">🔗 {t("Share")}</button>
+          <button onClick={() => exportToXlsx(input, result)} title="Download year-by-year XLSX">📊 {t("XLSX")}</button>
         </div>
         <div className="actions actions-primary">
           <label className="preset-picker">
-            <span>Profile:</span>
+            <span>{t("Profile:")}</span>
             <select
               value={profileKey}
               onChange={(e) => {
                 if (e.target.value) applyProfile(e.target.value as ProfileKey);
               }}
             >
-              <option value="" disabled>Choose your profile…</option>
+              <option value="" disabled>{t("Choose your profile…")}</option>
               {(Object.entries(PROFILES) as [ProfileKey, string][]).map(([k, label]) => (
                 <option key={k} value={k}>{label}</option>
               ))}
             </select>
           </label>
           <label className="preset-picker">
-            <span>Strategy:</span>
+            <span>{t("Strategy:")}</span>
             <select
               value={strategyKey}
               onChange={(e) => applyStrategy(e.target.value as StrategyKey)}
@@ -447,7 +460,7 @@ export default function App() {
               ))}
             </select>
           </label>
-          <button onClick={resetPreset} title="Reload current Profile × Strategy combo">Reset</button>
+          <button onClick={resetPreset} title="Reload current Profile × Strategy combo">{t("Reset")}</button>
         </div>
         <div className="picker-descriptions">
           {profileKey ? (
@@ -456,7 +469,7 @@ export default function App() {
             </div>
           ) : (
             <div className="picker-hint">
-              <b>Pick a profile</b> to load realistic starting numbers, or just start editing the cards below.
+              <b>{t("Pick a profile")}</b> {t("to load realistic starting numbers, or just start editing the cards below.")}
             </div>
           )}
           <div>
@@ -491,19 +504,19 @@ export default function App() {
       </section>
 
       <details className="section-group">
-      <summary className="section-header">⚙️ Settings</summary>
+      <summary className="section-header">{t("⚙️ Settings")}</summary>
       <section className="grid">
         <div className="card">
-          <h2>Time horizon</h2>
+          <h2>{t("Time horizon")}</h2>
           <label>
-            Start age <input type="number" value={input.startAge} onChange={(e) => updateHorizon({ startAge: +e.target.value })} />
+            {t("Start age")} <input type="number" value={input.startAge} onChange={(e) => updateHorizon({ startAge: +e.target.value })} />
           </label>
           <label>
-            End age <input type="number" value={input.endAge} onChange={(e) => updateHorizon({ endAge: +e.target.value })} />
+            {t("End age")} <input type="number" value={input.endAge} onChange={(e) => updateHorizon({ endAge: +e.target.value })} />
           </label>
         </div>
         <div className="card">
-          <h2>Assumption toggles</h2>
+          <h2>{t("Assumption toggles")}</h2>
           <label>
             <input
               type="checkbox"
@@ -528,10 +541,10 @@ export default function App() {
       </details>
 
       <details className="section-group">
-      <summary className="section-header">💰 Your money</summary>
+      <summary className="section-header">{t("💰 Your money")}</summary>
       <section className="grid">
         <div className={cardClass("accounts")}>
-          <h2 onClick={() => toggleCard("accounts")} className="card-title">Accounts</h2>
+          <h2 onClick={() => toggleCard("accounts")} className="card-title">{t("Accounts")}</h2>
           <details className="col-help">
             <summary>ⓘ What do these columns mean?</summary>
             <dl>
@@ -592,7 +605,7 @@ export default function App() {
         </div>
 
         <div className={cardClass("expenses")}>
-          <h2 onClick={() => toggleCard("expenses")} className="card-title">Expenses (monthly)</h2>
+          <h2 onClick={() => toggleCard("expenses")} className="card-title">{t("Expenses (monthly)")}</h2>
           <details className="col-help">
             <summary>ⓘ What do these columns mean?</summary>
             <dl>
@@ -641,7 +654,7 @@ export default function App() {
         </div>
 
         <div className={cardClass("liabilities")}>
-          <h2 onClick={() => toggleCard("liabilities")} className="card-title">Liabilities</h2>
+          <h2 onClick={() => toggleCard("liabilities")} className="card-title">{t("Liabilities")}</h2>
           <details className="col-help">
             <summary>ⓘ What do these columns mean?</summary>
             <dl>
@@ -692,7 +705,7 @@ export default function App() {
         </div>
 
         <div className={cardClass("fixedAssets")}>
-          <h2 onClick={() => toggleCard("fixedAssets")} className="card-title">🏠 Fixed assets</h2>
+          <h2 onClick={() => toggleCard("fixedAssets")} className="card-title">{t("🏠 Fixed assets")}</h2>
           <p className="hint" style={{ marginTop: 0 }}>
             Things you own with value (house, car). Not counted in your portfolio until sold.
             Optionally linked to a liability — selling pays off the loan and deposits the net to your
@@ -770,10 +783,10 @@ export default function App() {
       </details>
 
       <details className="section-group">
-      <summary className="section-header">📅 Your life</summary>
+      <summary className="section-header">{t("📅 Your life")}</summary>
       <section className="grid grid-full">
         <div className="card editable-table phases-card">
-          <h2>Phases</h2>
+          <h2>{t("Phases")}</h2>
           <details className="col-help">
             <summary>ⓘ What do these columns mean?</summary>
             <dl>
@@ -981,28 +994,28 @@ export default function App() {
         </div>
       </details>
 
-      <h2 className="section-header">📈 Results</h2>
+      <h2 className="section-header">{t("📈 Results")}</h2>
 
       <section className="verdict">
         <div className="metric">
-          <div className="label">Peak Wealth</div>
+          <div className="label">{t("Peak Wealth")}</div>
           <div className="value">{fmtRM(result.peakAssets)}</div>
-          <div className="sub">at age {result.peakAge}</div>
+          <div className="sub">{t("at age")} {result.peakAge}</div>
         </div>
         <div className="metric">
-          <div className="label">End of Plan ({input.endAge})</div>
+          <div className="label">{t("End of Plan")} ({input.endAge})</div>
           <div className="value">{lastRow ? fmtRM(lastRow.totalAssets) : "—"}</div>
         </div>
         <div className="metric">
-          <div className="label">Outcome</div>
+          <div className="label">{t("Outcome")}</div>
           <div className={`value ${result.runsOutAtAge ? "bad" : "good"}`}>
-            {result.runsOutAtAge ? `Runs out @ ${result.runsOutAtAge}` : `Solvent through ${input.endAge}`}
+            {result.runsOutAtAge ? `${t("Runs out @")} ${result.runsOutAtAge}` : `${t("Solvent through")} ${input.endAge}`}
           </div>
         </div>
       </section>
 
       <section className="chart-wrap">
-        <h2>Asset trajectory</h2>
+        <h2>{t("Asset trajectory")}</h2>
         <ResponsiveContainer width="100%" height={360}>
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -1040,9 +1053,9 @@ export default function App() {
 
       <section className="card">
         <div className="snapshot-header">
-          <h2>{showAllYears ? "Year-by-year detail" : "Milestone snapshot"}</h2>
+          <h2>{showAllYears ? t("Year-by-year detail") : t("Milestone snapshot")}</h2>
           <button onClick={() => setShowAllYears((v) => !v)} className="toggle-btn">
-            {showAllYears ? "Show milestones only" : "Show every year"}
+            {showAllYears ? t("Show milestones only") : t("Show every year")}
           </button>
         </div>
         <details className="col-help">
@@ -1157,7 +1170,7 @@ export default function App() {
 
       <footer>
         <p className="byline">
-          Built by <b>a PhD</b> · AI / Data Science
+          {t("Built by")} <b>{t("a PhD")}</b> · AI / Data Science
         </p>
         <p>
           Open source on <a href="https://github.com/jianhanlim/retire-plan">GitHub</a> ·
