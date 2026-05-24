@@ -318,7 +318,8 @@ export default function App() {
         </details>
       </section>
 
-      <h2 className="section-header">⚙️ Settings</h2>
+      <details className="section-group">
+      <summary className="section-header">⚙️ Settings</summary>
       <section className="grid">
         <div className="card">
           <h2>Time horizon</h2>
@@ -352,8 +353,10 @@ export default function App() {
           </p>
         </div>
       </section>
+      </details>
 
-      <h2 className="section-header">💰 Your money</h2>
+      <details className="section-group">
+      <summary className="section-header">💰 Your money</summary>
       <section className="grid">
         <div className="card">
           <h2>Accounts</h2>
@@ -455,8 +458,10 @@ export default function App() {
           <button onClick={addLiability}>+ Add liability</button>
         </div>
       </section>
+      </details>
 
-      <h2 className="section-header">📅 Your life</h2>
+      <details className="section-group">
+      <summary className="section-header">📅 Your life</summary>
       <section className="grid grid-full">
         <div className="card">
           <h2>Phases</h2>
@@ -587,6 +592,7 @@ export default function App() {
         </div>
 
       </section>
+      </details>
 
       <details className="saved-details">
         <summary>💾 Saved scenarios ({savedNames.length})</summary>

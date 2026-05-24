@@ -79,6 +79,13 @@ table button:hover { color: #dc2626; }
   color: #111827;
   letter-spacing: -0.01em;
 }
+summary.section-header {
+  cursor: pointer;
+  list-style: none;
+}
+summary.section-header::before { content: "▸ "; color: #6b7280; font-weight: normal; }
+.section-group[open] > summary.section-header::before { content: "▾ "; }
+.section-group > section { margin-top: 12px; }
 .grid-full { grid-template-columns: 1fr !important; }
 
 .saved-details {
