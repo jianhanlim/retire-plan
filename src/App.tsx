@@ -20,6 +20,7 @@ import {
   malaysiaPreset,
   type Account,
   type ExpenseItem,
+  type FixedAsset,
   type Liability,
   type Phase,
   type ProfileKey,
@@ -162,6 +163,25 @@ export default function App() {
   }
   function removeLiability(id: string) {
     setInput((s) => ({ ...s, liabilities: s.liabilities.filter((L) => L.id !== id) }));
+  }
+
+  function updateFixedAsset(id: string, patch: Partial<FixedAsset>) {
+    setInput((s) => ({
+      ...s,
+      fixedAssets: (s.fixedAssets ?? []).map((fa) => (fa.id === id ? { ...fa, ...patch } : fa)),
+    }));
+  }
+  function addFixedAsset() {
+    setInput((s) => ({
+      ...s,
+      fixedAssets: [
+        ...(s.fixedAssets ?? []),
+        { id: uid(), name: "New Asset", currentValue: 0, appreciation: 0.03 },
+      ],
+    }));
+  }
+  function removeFixedAsset(id: string) {
+    setInput((s) => ({ ...s, fixedAssets: (s.fixedAssets ?? []).filter((fa) => fa.id !== id) }));
   }
 
   function updatePhase(id: string, patch: Partial<Phase>) {
@@ -627,6 +647,71 @@ export default function App() {
             </tbody>
           </table>
           <button onClick={addLiability}>+ Add liability</button>
+        </div>
+
+        <div className={cardClass("fixedAssets")}>
+          <h2 onClick={() => toggleCard("fixedAssets")} className="card-title">🏠 Fixed assets</h2>
+          <p className="hint" style={{ marginTop: 0 }}>
+            Things you own with value (house, car). Not counted in your portfolio until sold.
+            Optionally linked to a liability — selling pays off the loan and deposits the net to your
+            preferred surplus account.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Current Value</th>
+                <th>Apprec %</th>
+                <th>Linked Loan</th>
+                <th>Sell Age</th>
+                <th>Sell Price</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(input.fixedAssets ?? []).map((fa) => (
+                <tr key={fa.id} className={rowClass(fa.id)}>
+                  <td data-label="Name">
+                    <input value={fa.name} onChange={(e) => updateFixedAsset(fa.id, { name: e.target.value })} />
+                    <button className="row-toggle" onClick={() => toggleRow(fa.id)} aria-label="Toggle details" type="button">
+                      {expandedRows.has(fa.id) ? "▾" : "▸"}
+                    </button>
+                  </td>
+                  <td data-label="Current Value"><input type="number" value={fa.currentValue} onChange={(e) => updateFixedAsset(fa.id, { currentValue: +e.target.value })} /></td>
+                  <td data-label="Appreciation %"><input type="number" step="0.1" value={(fa.appreciation * 100).toFixed(1)} onChange={(e) => updateFixedAsset(fa.id, { appreciation: +e.target.value / 100 })} /></td>
+                  <td data-label="Linked Loan">
+                    <select
+                      value={fa.linkedLiabilityId ?? ""}
+                      onChange={(e) => updateFixedAsset(fa.id, { linkedLiabilityId: e.target.value || undefined })}
+                    >
+                      <option value="">— none —</option>
+                      {input.liabilities.map((L) => (
+                        <option key={L.id} value={L.id}>{L.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td data-label="Sell Age">
+                    <input
+                      type="number"
+                      placeholder="never"
+                      value={fa.sellAge ?? ""}
+                      onChange={(e) => updateFixedAsset(fa.id, { sellAge: e.target.value === "" ? undefined : +e.target.value })}
+                    />
+                  </td>
+                  <td data-label="Sell Price (override)">
+                    <input
+                      type="number"
+                      placeholder="auto"
+                      value={fa.sellPriceOverride ?? ""}
+                      onChange={(e) => updateFixedAsset(fa.id, { sellPriceOverride: e.target.value === "" ? undefined : +e.target.value })}
+                    />
+                  </td>
+                  <td className="row-actions"><button onClick={() => removeFixedAsset(fa.id)} aria-label="Remove asset">× Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={addFixedAsset}>+ Add fixed asset</button>
         </div>
       </section>
       </details>

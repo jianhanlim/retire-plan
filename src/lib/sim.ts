@@ -51,6 +51,19 @@ export type Phase = {
   transfers?: { fromId: string; toId: string; amount: number }[];
 };
 
+// A FixedAsset is something you own that has value (house, car, equipment).
+// It does NOT count toward Total Assets until you sell it (which converts it to cash).
+// Optionally links to a Liability (loan); selling stops the loan and nets the proceeds.
+export type FixedAsset = {
+  id: string;
+  name: string;
+  currentValue: number;         // value today (at plan start)
+  appreciation: number;         // annual rate, e.g. 0.03 for 3%
+  linkedLiabilityId?: string;   // which Liability is force-ended when sold
+  sellAge?: number;             // when to sell (omit = never sell)
+  sellPriceOverride?: number;   // explicit price; else appreciated value used
+};
+
 export type SimInput = {
   startAge: number;
   endAge: number;
@@ -58,6 +71,7 @@ export type SimInput = {
   expenses: ExpenseItem[];
   liabilities: Liability[];
   phases: Phase[];
+  fixedAssets?: FixedAsset[];   // optional — defaults to []
   // Assumption toggles
   topUpEarnsSameYearInterest: boolean; // default true
   liabilityEndInclusive: boolean; // default true (pay through endAge)
@@ -70,6 +84,10 @@ export type YearRow = {
   income: number;
   surplus: number;
   surplusSaved: number;
+  // Net cash injection from Fixed Asset sales this year (sale price − remaining loan).
+  assetSaleProceeds: number;
+  // Names of assets sold this year (for display).
+  assetsSold: string[];
   transfers: number;
   expenseTotal: number;
   liabilityTotal: number;
@@ -193,6 +211,11 @@ export function simulate(input: SimInput): SimResult {
   let peakAssets = 0;
   let peakAge = startAge;
   let runsOutAtAge: number | null = null;
+  // Liabilities can be force-ended early (e.g. when a linked asset is sold).
+  // Map<liabilityId, lastAgeToPay (inclusive)>
+  const liabilityForceEnd = new Map<string, number>();
+  // Track which assets have been sold (to prevent double-sell on edge cases).
+  const soldAssets = new Set<string>();
 
   for (let age = startAge; age <= endAge; age++) {
     const yearIndex = age - startAge;
@@ -201,6 +224,39 @@ export function simulate(input: SimInput): SimResult {
 
     let transfersTotal = 0;
     yearlyTopUps.clear();
+
+    // Start-of-year: detect Fixed Asset sales for THIS year and force-end linked liabilities
+    // BEFORE we compute this year's liability total (so the sold year owes nothing).
+    type PendingSale = { name: string; netProceeds: number };
+    const pendingSales: PendingSale[] = [];
+    if (yearIndex > 0) {
+      for (const fa of input.fixedAssets ?? []) {
+        if (fa.sellAge !== age || soldAssets.has(fa.id)) continue;
+        soldAssets.add(fa.id);
+
+        const yearsHeld = Math.max(0, age - input.startAge);
+        const appreciated = fa.currentValue * Math.pow(1 + (fa.appreciation ?? 0), yearsHeld);
+        const salePrice = fa.sellPriceOverride ?? appreciated;
+
+        // Future payments from `age` onward to liability end
+        let remainingLoan = 0;
+        if (fa.linkedLiabilityId) {
+          const L = liabilities.find((l) => l.id === fa.linkedLiabilityId);
+          if (L) {
+            const liabStart = L.startAge ?? input.startAge;
+            const lastPayAge = input.liabilityEndInclusive ? L.endAge : L.endAge - 1;
+            for (let a = age; a <= lastPayAge; a++) {
+              remainingLoan += inflated(L.monthly, L.inflation, a - liabStart) * 12;
+            }
+            // Force-end the loan: no payment this year or later
+            liabilityForceEnd.set(L.id, age - 1);
+          }
+        }
+
+        const netProceeds = Math.max(0, salePrice - remainingLoan);
+        pendingSales.push({ name: fa.name, netProceeds });
+      }
+    }
 
     // Start-of-year: transfers
     if (phase?.transfers) {
@@ -229,14 +285,15 @@ export function simulate(input: SimInput): SimResult {
     }));
     const expenseTotal = expenseBreakdown.reduce((s, x) => s + x.yearly, 0);
 
-    // Liabilities (e.g. house)
+    // Liabilities (e.g. house) — respect force-end overrides (asset sales clear the loan)
     let liabilityTotal = 0;
     for (const L of liabilities) {
-      const startAge = L.startAge ?? input.startAge;
-      const inRange = age >= startAge && (input.liabilityEndInclusive ? age <= L.endAge : age < L.endAge);
+      const liabStart = L.startAge ?? input.startAge;
+      const forceEnd = liabilityForceEnd.get(L.id);
+      const effectiveEnd = forceEnd !== undefined ? forceEnd : L.endAge;
+      const inRange = age >= liabStart && (input.liabilityEndInclusive ? age <= effectiveEnd : age < effectiveEnd);
       if (inRange) {
-        // Inflation compounds from startAge (not plan start) for liabilities with later start
-        const yearsSinceLiabilityStart = age - startAge;
+        const yearsSinceLiabilityStart = age - liabStart;
         liabilityTotal +=
           inflated(L.monthly, L.inflation, yearsSinceLiabilityStart) * 12;
       }
@@ -288,6 +345,15 @@ export function simulate(input: SimInput): SimResult {
       surplusSaved = depositCascade(surplus, phase.surplusAccountId);
     }
 
+    // Deposit Fixed Asset sale proceeds (after interest credit, same lane as surplus)
+    let assetSaleProceeds = 0;
+    const assetsSold: string[] = [];
+    for (const s of pendingSales) {
+      assetsSold.push(s.name);
+      assetSaleProceeds += s.netProceeds;
+      if (s.netProceeds > 0) depositCascade(s.netProceeds, phase?.surplusAccountId);
+    }
+
     const totalAssets = accts.reduce((s, a) => s + a.balance, 0);
     const totalPrincipal = accts.reduce((s, a) => s + a.principal, 0);
 
@@ -303,6 +369,8 @@ export function simulate(input: SimInput): SimResult {
       income: annualIncome,
       surplus,
       surplusSaved,
+      assetSaleProceeds,
+      assetsSold,
       transfers: transfersTotal,
       expenseTotal,
       liabilityTotal,
@@ -373,6 +441,7 @@ type ProfileShape = {
   liabilities: Liability[];
   // Phases WITHOUT surplusAccountId / transfers (strategy concerns)
   phases: Omit<Phase, "surplusAccountId" | "transfers">[];
+  fixedAssets?: FixedAsset[];
 };
 
 type StrategyShape = {
@@ -392,6 +461,7 @@ function combineInternal(p: ProfileShape, s: StrategyShape): SimInput {
     })),
     expenses: p.expenses,
     liabilities: p.liabilities,
+    fixedAssets: p.fixedAssets ?? [],
     phases: p.phases.map((ph) => {
       const ov = s.phaseOverrides[ph.id] ?? {};
       return { ...ph, surplusAccountId: ov.surplusAccountId, transfers: ov.transfers };
@@ -459,6 +529,9 @@ function profileYoungPro(): ProfileShape {
     liabilities: [
       { id: "house", name: "Housing loan", monthly: 1_500, inflation: 0, endAge: 55 },
     ],
+    fixedAssets: [
+      { id: "house-asset", name: "House", currentValue: 350_000, appreciation: 0.03, linkedLiabilityId: "house" },
+    ],
     phases: [
       { id: "current", name: "Year 0 (Current)", startAge: 25, endAge: 25, monthlyIncome: 0 },
       { id: "build", name: "Build & save", startAge: 26, endAge: 35, monthlyIncome: 5_000, incomeInflation: 0.04 },
@@ -496,6 +569,9 @@ function profileMidCareer(): ProfileShape {
       { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
     ],
     liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    fixedAssets: [
+      { id: "house-asset", name: "House", currentValue: 500_000, appreciation: 0.03, linkedLiabilityId: "house" },
+    ],
     phases: [
       { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
       { id: "accum", name: "Accumulation", startAge: 32, endAge: 36, monthlyIncome: 15_000, incomeInflation: 0 },
@@ -527,6 +603,9 @@ function profileLean(): ProfileShape {
       { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
     ],
     liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    fixedAssets: [
+      { id: "house-asset", name: "House", currentValue: 500_000, appreciation: 0.03, linkedLiabilityId: "house" },
+    ],
     phases: [
       { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
       { id: "sprint", name: "FIRE Sprint", startAge: 32, endAge: 35, monthlyIncome: 15_000, incomeInflation: 0 },
@@ -558,6 +637,9 @@ function profilePreRetire(): ProfileShape {
       { id: "tel", name: "Phone/Internet", monthly: 150, inflation: 0 },
     ],
     liabilities: [{ id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 }],
+    fixedAssets: [
+      { id: "house-asset", name: "House", currentValue: 800_000, appreciation: 0.03, linkedLiabilityId: "house" },
+    ],
     phases: [
       { id: "current", name: "Year 0 (Current)", startAge: 55, endAge: 55, monthlyIncome: 0 },
       { id: "sprint", name: "Final Sprint", startAge: 56, endAge: 60, monthlyIncome: 18_000, incomeInflation: 0 },

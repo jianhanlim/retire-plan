@@ -423,6 +423,98 @@ console.log("\n— Phase coverage gaps (unphased years) —");
   check("Unphased year has 0 income", gap.income === 0);
 }
 
+console.log("\n— Fixed Assets —");
+{
+  // No sellAge: zero impact on simulation
+  const noSell = simulate({
+    startAge: 30, endAge: 31,
+    accounts: [{ id: "cash", name: "Cash", balance: 0, rate: 0, drainOrder: 0, isCash: true }],
+    expenses: [], liabilities: [],
+    fixedAssets: [{ id: "h", name: "House", currentValue: 500_000, appreciation: 0.03 }],
+    phases: [{ id: "y0", name: "Y0", startAge: 30, endAge: 30, monthlyIncome: 0 },
+             { id: "p", name: "p", startAge: 31, endAge: 31, monthlyIncome: 0 }],
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  });
+  check("FA without sellAge: zero proceeds", noSell.rows[1].assetSaleProceeds === 0);
+  check("FA without sellAge: total assets unchanged from start",
+    noSell.rows[1].totalAssets === 0);
+
+  // Sell at specific age, no linked loan → proceeds = appreciated value
+  const sellSimple = simulate({
+    startAge: 30, endAge: 32,
+    accounts: [{ id: "cash", name: "Cash", balance: 0, rate: 0, drainOrder: 0, isCash: true }],
+    expenses: [], liabilities: [],
+    fixedAssets: [{ id: "h", name: "House", currentValue: 100_000, appreciation: 0.10, sellAge: 32 }],
+    phases: [{ id: "y0", name: "Y0", startAge: 30, endAge: 30, monthlyIncome: 0 },
+             { id: "p", name: "p", startAge: 31, endAge: 32, monthlyIncome: 0, surplusAccountId: "cash" }],
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  });
+  const sellRow = sellSimple.rows.find((r) => r.age === 32)!;
+  // yearsHeld = 2, appreciated = 100k × 1.1² = 121k
+  check("FA sell at age 32: proceeds = appreciated value (~121k)",
+    near(sellRow.assetSaleProceeds, 121_000, 1e-6));
+  check("FA sell: assetsSold includes name", sellRow.assetsSold.includes("House"));
+  check("FA sell: cash account got the deposit", near(sellRow.accounts[0].balance, 121_000, 1e-6));
+
+  // Override sell price
+  const override = simulate({
+    startAge: 30, endAge: 31,
+    accounts: [{ id: "cash", name: "Cash", balance: 0, rate: 0, drainOrder: 0, isCash: true }],
+    expenses: [], liabilities: [],
+    fixedAssets: [{ id: "h", name: "House", currentValue: 100_000, appreciation: 0.10, sellAge: 31, sellPriceOverride: 200_000 }],
+    phases: [{ id: "y0", name: "Y0", startAge: 30, endAge: 30, monthlyIncome: 0 },
+             { id: "p", name: "p", startAge: 31, endAge: 31, monthlyIncome: 0, surplusAccountId: "cash" }],
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  });
+  check("FA sellPriceOverride takes precedence",
+    near(override.rows[1].assetSaleProceeds, 200_000));
+
+  // Linked liability stops at sell, and netProceeds = sale − remaining payments
+  const linked = simulate({
+    startAge: 30, endAge: 35,
+    accounts: [{ id: "cash", name: "Cash", balance: 0, rate: 0, drainOrder: 0, isCash: true }],
+    expenses: [],
+    liabilities: [{ id: "loan", name: "Loan", monthly: 1000, inflation: 0, endAge: 34 }],
+    fixedAssets: [{
+      id: "h", name: "House", currentValue: 200_000, appreciation: 0,
+      linkedLiabilityId: "loan", sellAge: 32,
+    }],
+    phases: [{ id: "y0", name: "Y0", startAge: 30, endAge: 30, monthlyIncome: 0 },
+             { id: "p", name: "p", startAge: 31, endAge: 35, monthlyIncome: 0, surplusAccountId: "cash" }],
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  });
+  // At age 32, remaining payments (years 32, 33, 34 inclusive) = 3 × 12,000 = 36,000
+  // Net proceeds = 200,000 − 36,000 = 164,000
+  const linkedSell = linked.rows.find((r) => r.age === 32)!;
+  check("FA linked: net proceeds = price − remaining payments (164k)",
+    near(linkedSell.assetSaleProceeds, 164_000));
+  // Liability total at age 32 = 0 (loan ended due to sale)
+  check("FA linked: liabilityTotal == 0 in year of sale", linkedSell.liabilityTotal === 0);
+  // Subsequent years: liability is also 0
+  check("FA linked: liabilityTotal == 0 at age 33",
+    linked.rows.find((r) => r.age === 33)!.liabilityTotal === 0);
+
+  // Loan > value → no negative cash
+  const underwater = simulate({
+    startAge: 30, endAge: 35,
+    accounts: [{ id: "cash", name: "Cash", balance: 0, rate: 0, drainOrder: 0, isCash: true }],
+    expenses: [],
+    liabilities: [{ id: "loan", name: "Loan", monthly: 10_000, inflation: 0, endAge: 34 }],
+    fixedAssets: [{
+      id: "h", name: "House", currentValue: 50_000, appreciation: 0,
+      linkedLiabilityId: "loan", sellAge: 31,
+    }],
+    phases: [{ id: "y0", name: "Y0", startAge: 30, endAge: 30, monthlyIncome: 0 },
+             { id: "p", name: "p", startAge: 31, endAge: 35, monthlyIncome: 0, surplusAccountId: "cash" }],
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  });
+  // remaining = 4 × 120,000 = 480,000; sale = 50,000 → underwater
+  check("FA underwater: proceeds clamped to 0 (no negative cash)",
+    underwater.rows[1].assetSaleProceeds === 0);
+  check("FA underwater: liability still stops (no further payments)",
+    underwater.rows.find((r) => r.age === 32)!.liabilityTotal === 0);
+}
+
 console.log("\n— Total integrity invariants across all rows —");
 {
   // Construct a varied scenario and check identities
