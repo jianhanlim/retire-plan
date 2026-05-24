@@ -206,24 +206,15 @@ export function simulate(input: SimInput): SimResult {
     const portfolioDrained = portfolioOutflow - shortfall;
     if (shortfall > 0 && runsOutAtAge === null) runsOutAtAge = age;
 
-    // Surplus savings: if a target account is set, deposit surplus there
-    let surplusSaved = 0;
-    if (surplus > 0 && phase?.surplusAccountId) {
-      const target = accts.find((a) => a.id === phase.surplusAccountId);
-      if (target) {
-        target.balance += surplus;
-        target.principal += surplus;
-        surplusSaved = surplus;
-      }
-    }
-
-    // Interest at end of year (skip year 0)
+    // Interest credit at end of year (skip year 0).
+    // Credited BEFORE surplus is deposited so surplus (a year-end inflow) never
+    // earns same-year interest — economically consistent regardless of toggle.
     let interestEarned = 0;
     if (yearIndex > 0) {
       for (const acct of accts) {
         let base = acct.balance;
         if (!input.topUpEarnsSameYearInterest) {
-          // Subtract top-ups of this year before interest
+          // Subtract scheduled top-ups of this year before interest
           const tu =
             phase?.topUps?.find((x) => x.accountId === acct.id)?.amount ?? 0;
           base = Math.max(0, base - tu);
@@ -231,6 +222,17 @@ export function simulate(input: SimInput): SimResult {
         const earned = base * acct.rate;
         acct.balance += earned;
         interestEarned += earned;
+      }
+    }
+
+    // Surplus savings: deposit after interest so it doesn't earn same-year interest
+    let surplusSaved = 0;
+    if (surplus > 0 && phase?.surplusAccountId) {
+      const target = accts.find((a) => a.id === phase.surplusAccountId);
+      if (target) {
+        target.balance += surplus;
+        target.principal += surplus;
+        surplusSaved = surplus;
       }
     }
 

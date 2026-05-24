@@ -13,12 +13,15 @@ import {
 import { simulate, malaysiaPreset, type SimInput, type Account, type ExpenseItem, type Liability, type Phase } from "./lib/sim";
 import { exportToXlsx } from "./lib/exportXlsx";
 import {
+  autosave,
   decodeScenarioFromHash,
   deleteScenario,
   getShareableUrl,
   listSavedScenarios,
+  loadAutosave,
   loadScenario,
   saveScenario,
+  scenarioExists,
 } from "./lib/storage";
 import "./App.css";
 
@@ -31,11 +34,13 @@ function uid() {
 
 export default function App() {
   const [input, setInput] = useState<SimInput>(() => {
-    // Try URL hash first (shared link)
+    // Priority: shared URL → autosave → preset
     if (typeof window !== "undefined" && window.location.hash) {
       const fromHash = decodeScenarioFromHash(window.location.hash);
       if (fromHash) return fromHash;
     }
+    const auto = loadAutosave();
+    if (auto) return auto;
     return malaysiaPreset();
   });
   const [privacy, setPrivacy] = useState(false);
@@ -43,12 +48,18 @@ export default function App() {
   const fmtRM = useMemo(() => makeFmt(privacy), [privacy]);
   const result = useMemo(() => simulate(input), [input]);
 
-  // Clear URL hash after loading so future edits aren't overwritten
+  // Clear URL hash only if it decoded successfully (preserve broken hash so user sees the issue)
   useEffect(() => {
-    if (window.location.hash) {
+    if (window.location.hash && decodeScenarioFromHash(window.location.hash)) {
       history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, []);
+
+  // Autosave working state on every change (debounced via React batching)
+  useEffect(() => {
+    const id = setTimeout(() => autosave(input), 250);
+    return () => clearTimeout(id);
+  }, [input]);
 
   // Milestones = start/end of every phase + plan start + plan end + runs-out year
   const milestones = useMemo(() => {
@@ -65,16 +76,21 @@ export default function App() {
       .sort((a, b) => a - b);
   }, [input.startAge, input.endAge, input.phases, result.runsOutAtAge]);
 
-  const chartData = result.rows.map((r) => {
-    const row: Record<string, number | string> = {
-      age: r.age,
-      total: Math.round(r.totalAssets),
-    };
-    for (const a of r.accounts) {
-      row[a.id] = Math.round(a.balance);
-    }
-    return row;
-  });
+  const chartData = useMemo(
+    () =>
+      result.rows.map((r) => {
+        const row: Record<string, number | string> = {
+          age: r.age,
+          total: Math.round(r.totalAssets),
+        };
+        for (const a of r.accounts) {
+          row[a.id] = Math.round(a.balance);
+        }
+        return row;
+      }),
+    [result.rows]
+  );
+  const lastRow = result.rows[result.rows.length - 1];
 
   function updateAccount(id: string, patch: Partial<Account>) {
     setInput((s) => ({
@@ -153,9 +169,14 @@ export default function App() {
     }
   }
   function handleSave() {
-    const name = prompt("Save scenario as:");
+    const name = prompt("Save scenario as:")?.trim();
     if (!name) return;
-    saveScenario(name.trim(), input);
+    if (scenarioExists(name) && !confirm(`"${name}" already exists. Overwrite?`)) return;
+    const res = saveScenario(name, input);
+    if (!res.ok) {
+      alert(`Could not save: ${res.error}\n\n(Browser storage may be full or disabled.)`);
+      return;
+    }
     setSavedNames(listSavedScenarios());
   }
   function handleLoad(name: string) {
@@ -196,7 +217,7 @@ export default function App() {
         </div>
         <div className="metric">
           <div className="label">End of Plan ({input.endAge})</div>
-          <div className="value">{fmtRM(result.rows[result.rows.length - 1].totalAssets)}</div>
+          <div className="value">{lastRow ? fmtRM(lastRow.totalAssets) : "—"}</div>
         </div>
         <div className="metric">
           <div className="label">Outcome</div>
@@ -488,6 +509,8 @@ export default function App() {
               <li>Principal vs interest tracking — see when you start eating into capital</li>
               <li>Assumption toggles for the two ambiguous modeling choices</li>
               <li>XLSX export of the full year-by-year simulation</li>
+              <li>Save scenarios in your browser, share via URL (hash fragment, never sent to a server), privacy mode for screenshots</li>
+              <li>Auto-save: your edits survive a page refresh</li>
             </ul>
           </div>
           <div>
@@ -507,7 +530,7 @@ export default function App() {
               <li>Healthcare shocks beyond inflated premiums</li>
               <li>Monthly compounding (annual only)</li>
               <li>Goal-seeking ("when can I retire?") and Monte Carlo sensitivity</li>
-              <li>Scenario comparison side-by-side and shareable URLs</li>
+              <li>Scenario comparison side-by-side</li>
             </ul>
           </div>
         </div>
