@@ -200,6 +200,65 @@ console.log("\n== No Top-Up preset ==");
   console.log(`No Top-Up: peak ${result.peakAssets.toFixed(0)} @ ${result.peakAge}, runs out: ${result.runsOutAtAge ?? "never"}`);
 }
 
+console.log("\n== XLSX-export number integrity ==");
+{
+  // Don't actually write a file — but build the same data structures the exporter does
+  // and assert key invariants on every row across every preset.
+  const presets = [
+    ["aggressive", malaysiaPreset()],
+    ["conservative", conservativePreset()],
+    ["leanFire", leanFirePreset()],
+    ["noTopUp", noTopUpPreset()],
+  ] as const;
+  for (const [name, input] of presets) {
+    const result = simulate(input);
+    // Account universe = union of all account ids that ever appear
+    const acctIdSet = new Set<string>();
+    for (const r of result.rows) for (const a of r.accounts) acctIdSet.add(a.id);
+
+    for (const r of result.rows) {
+      // 1. Sum of every account balance MUST equal totalAssets exactly
+      const sumBal = r.accounts.reduce((s, a) => s + a.balance, 0);
+      check(
+        `${name} age ${r.age}: Σ account balances == totalAssets`,
+        near(sumBal, r.totalAssets, 1e-6),
+        `Σ=${sumBal.toFixed(2)} vs total=${r.totalAssets.toFixed(2)}`
+      );
+      // 2. Sum of every account principal MUST equal totalPrincipal
+      const sumPrin = r.accounts.reduce((s, a) => s + a.principal, 0);
+      check(
+        `${name} age ${r.age}: Σ account principal == totalPrincipal`,
+        near(sumPrin, r.totalPrincipal, 1e-6)
+      );
+      // 3. totalPrincipal + totalInterest == totalAssets
+      check(
+        `${name} age ${r.age}: principal + interest == total`,
+        near(r.totalPrincipal + r.totalInterest, r.totalAssets, 1e-6)
+      );
+      // 4. Every account that appears in the universe is present in the row (XLSX row alignment)
+      for (const id of acctIdSet) {
+        // Auto-created accounts only appear from the year they were created onward.
+        // So we only require presence from the first row where they appeared.
+        const firstAppearance = result.rows.find((rr) => rr.accounts.some((a) => a.id === id))!.age;
+        if (r.age >= firstAppearance) {
+          check(
+            `${name} age ${r.age}: row contains account ${id}`,
+            !!r.accounts.find((a) => a.id === id)
+          );
+        }
+      }
+      // 5. Principal never exceeds balance (interest is spent first when draining)
+      for (const a of r.accounts) {
+        check(
+          `${name} age ${r.age} acct ${a.id}: principal <= balance`,
+          a.principal <= a.balance + 1e-6,
+          `principal=${a.principal.toFixed(2)} balance=${a.balance.toFixed(2)}`
+        );
+      }
+    }
+  }
+}
+
 console.log("\n== Summary ==");
 console.log(`${passed} passed, ${failed} failed`);
 if (failed > 0) throw new Error(`${failed} smoke check(s) failed`);

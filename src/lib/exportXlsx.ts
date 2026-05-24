@@ -2,8 +2,24 @@ import * as XLSX from "xlsx";
 import type { SimInput, SimResult } from "./sim";
 
 export function exportToXlsx(input: SimInput, result: SimResult, filename = "retire-plan.xlsx") {
-  const acctIds = input.accounts.map((a) => a.id);
-  const acctNames = Object.fromEntries(input.accounts.map((a) => [a.id, a.name]));
+  // Collect every account id that appears in any row (includes auto-created Cash).
+  const acctIdSet = new Set<string>();
+  for (const r of result.rows) for (const a of r.accounts) acctIdSet.add(a.id);
+  // Preserve user-defined order first, then any extras (e.g. cash-auto)
+  const acctIds = [
+    ...input.accounts.map((a) => a.id).filter((id) => acctIdSet.has(id)),
+    ...[...acctIdSet].filter((id) => !input.accounts.some((a) => a.id === id)),
+  ];
+  const acctNames: Record<string, string> = Object.fromEntries(
+    input.accounts.map((a) => [a.id, a.name])
+  );
+  // Fill in names for auto-created accounts by looking at the last row
+  const lastRow = result.rows[result.rows.length - 1];
+  if (lastRow) {
+    for (const a of lastRow.accounts) {
+      if (!acctNames[a.id]) acctNames[a.id] = a.id === "cash-auto" ? "Cash (auto)" : a.id;
+    }
+  }
 
   // Simulation sheet
   const simHeaders = [
@@ -66,8 +82,8 @@ export function exportToXlsx(input: SimInput, result: SimResult, filename = "ret
     ["Top-up earns same-year interest", input.topUpEarnsSameYearInterest ? "Yes" : "No"],
     ["Liability end inclusive", input.liabilityEndInclusive ? "Yes" : "No"],
     [],
-    ["Accounts", "Balance", "Rate", "Drain Order"],
-    ...input.accounts.map((a) => [a.name, a.balance, a.rate, a.drainOrder]),
+    ["Accounts", "Balance", "Rate", "Drain Order", "Max Top-up/yr"],
+    ...input.accounts.map((a) => [a.name, a.balance, a.rate, a.drainOrder, a.maxYearlyTopUp ?? "—"]),
     [],
     ["Expenses", "Monthly", "Inflation", "Monthly Cap"],
     ...input.expenses.map((e) => [e.name, e.monthly, e.inflation, e.monthlyCap ?? ""]),
@@ -75,8 +91,14 @@ export function exportToXlsx(input: SimInput, result: SimResult, filename = "ret
     ["Liabilities", "Monthly", "End Age", "Inflation"],
     ...input.liabilities.map((L) => [L.name, L.monthly, L.endAge, L.inflation]),
     [],
-    ["Phases", "Start", "End", "Monthly Income", "Income Infl", "Surplus → Account"],
-    ...input.phases.map((p) => [p.name, p.startAge, p.endAge, p.monthlyIncome, p.incomeInflation ?? 0, p.surplusAccountId ?? "—"]),
+    ["Phases", "Start", "End", "Monthly Income", "Income Infl", "Surplus → Account", "Transfers"],
+    ...input.phases.map((p) => [
+      p.name, p.startAge, p.endAge, p.monthlyIncome, p.incomeInflation ?? 0,
+      p.surplusAccountId ? (acctNames[p.surplusAccountId] ?? p.surplusAccountId) : "—",
+      (p.transfers ?? [])
+        .map((t) => `${acctNames[t.fromId] ?? t.fromId}→${acctNames[t.toId] ?? t.toId} ${t.amount}`)
+        .join("; ") || "—",
+    ]),
   ];
 
   const wb = XLSX.utils.book_new();

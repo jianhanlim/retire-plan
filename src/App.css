@@ -54,6 +54,17 @@ table button:hover { color: #dc2626; }
   background: #fff; cursor: pointer; font-size: 13px;
 }
 
+.snapshot-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; gap: 12px; flex-wrap: wrap;
+}
+.snapshot-header h2 { margin: 0; }
+.toggle-btn {
+  padding: 6px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.toggle-btn:hover { background: #f3f4f6; }
+
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .snapshot tr.shortfall { background: #fef2f2; }
 .snapshot td.num, .snapshot th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

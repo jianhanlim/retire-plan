@@ -175,6 +175,7 @@ export default function App() {
     setInput(presetByKey(key));
   }
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [showAllYears, setShowAllYears] = useState(false);
 
   function addTransfer(phaseId: string) {
     const phase = input.phases.find((p) => p.id === phaseId);
@@ -625,7 +626,12 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>Milestone snapshot</h2>
+        <div className="snapshot-header">
+          <h2>{showAllYears ? "Year-by-year detail" : "Milestone snapshot"}</h2>
+          <button onClick={() => setShowAllYears((v) => !v)} className="toggle-btn">
+            {showAllYears ? "Show milestones only" : "Show every year"}
+          </button>
+        </div>
         <div className="scroll-x">
           <table className="snapshot">
             <thead>
@@ -645,7 +651,7 @@ export default function App() {
             </thead>
             <tbody>
               {result.rows
-                .filter((r) => milestones.includes(r.age))
+                .filter((r) => showAllYears || milestones.includes(r.age))
                 .map((r) => {
                   const isYear0 = r.yearIndex === 0;
                   return (
