@@ -180,7 +180,7 @@ summary.section-header::before {
   box-shadow: var(--shadow-sm);
 }
 .card h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; color: var(--text); }
-.card label { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; color: var(--text-soft); }
+.card label { display: flex; align-items: center; gap: 10px; font-size: 14px; margin: 10px 0; color: var(--text); }
 .card .hint { font-size: 12.5px; color: var(--text-soft); margin-top: 10px; line-height: 1.55; }
 .card > button {
   margin-top: 10px; padding: 7px 14px;
@@ -189,6 +189,41 @@ summary.section-header::before {
   color: var(--text-soft); transition: all 0.15s;
 }
 .card > button:hover { background: var(--surface-2); color: var(--text); border-color: var(--text-mute); border-style: solid; }
+
+/* ── Form inputs (base styling for all <input>/<select>) ─── */
+input[type="text"],
+input[type="number"],
+input:not([type]),
+select {
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+input:not([type]):focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+input[type="number"] { text-align: right; max-width: 100%; }
+
+/* Card-level labels with adjacent input (e.g. Time horizon) */
+.card label input[type="number"],
+.card label input[type="text"],
+.card label select { margin-left: auto; min-width: 90px; }
+
+input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px; height: 16px;
+  cursor: pointer;
+}
 
 /* ── Tables ─────────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
