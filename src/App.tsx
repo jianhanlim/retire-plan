@@ -217,6 +217,15 @@ export default function App() {
   }
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showAllYears, setShowAllYears] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const toggleRow = (id: string) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const rowClass = (id: string) => (expandedRows.has(id) ? "expanded" : "");
 
   function addTransfer(phaseId: string) {
     const phase = input.phases.find((p) => p.id === phaseId);
@@ -493,8 +502,13 @@ export default function App() {
             </thead>
             <tbody>
               {input.accounts.map((a) => (
-                <tr key={a.id}>
-                  <td data-label="Name"><input value={a.name} onChange={(e) => updateAccount(a.id, { name: e.target.value })} /></td>
+                <tr key={a.id} className={rowClass(a.id)}>
+                  <td data-label="Name">
+                    <input value={a.name} onChange={(e) => updateAccount(a.id, { name: e.target.value })} />
+                    <button className="row-toggle" onClick={() => toggleRow(a.id)} aria-label="Toggle details" type="button">
+                      {expandedRows.has(a.id) ? "▾" : "▸"}
+                    </button>
+                  </td>
                   <td data-label="Balance"><input type="number" value={a.balance} onChange={(e) => updateAccount(a.id, { balance: +e.target.value })} /></td>
                   <td data-label="Rate %"><input type="number" step="0.01" value={(a.rate * 100).toFixed(2)} onChange={(e) => updateAccount(a.id, { rate: +e.target.value / 100 })} /></td>
                   <td data-label="Drain order"><input type="number" value={a.drainOrder} onChange={(e) => updateAccount(a.id, { drainOrder: +e.target.value })} /></td>
@@ -538,8 +552,13 @@ export default function App() {
             </thead>
             <tbody>
               {input.expenses.map((e) => (
-                <tr key={e.id}>
-                  <td data-label="Name"><input value={e.name} onChange={(ev) => updateExpense(e.id, { name: ev.target.value })} /></td>
+                <tr key={e.id} className={rowClass(e.id)}>
+                  <td data-label="Name">
+                    <input value={e.name} onChange={(ev) => updateExpense(e.id, { name: ev.target.value })} />
+                    <button className="row-toggle" onClick={() => toggleRow(e.id)} aria-label="Toggle details" type="button">
+                      {expandedRows.has(e.id) ? "▾" : "▸"}
+                    </button>
+                  </td>
                   <td data-label="Monthly"><input type="number" value={e.monthly} onChange={(ev) => updateExpense(e.id, { monthly: +ev.target.value })} /></td>
                   <td data-label="Inflation %"><input type="number" step="0.1" value={(e.inflation * 100).toFixed(1)} onChange={(ev) => updateExpense(e.id, { inflation: +ev.target.value / 100 })} /></td>
                   <td data-label="Monthly cap"><input type="number" placeholder="—" value={e.monthlyCap ?? ""} onChange={(ev) => updateExpense(e.id, { monthlyCap: ev.target.value === "" ? undefined : +ev.target.value })} /></td>
@@ -566,6 +585,7 @@ export default function App() {
               <tr>
                 <th>Name</th>
                 <th>Monthly</th>
+                <th>Start Age</th>
                 <th>End Age</th>
                 <th>Infl %</th>
                 <th></th>
@@ -573,9 +593,22 @@ export default function App() {
             </thead>
             <tbody>
               {input.liabilities.map((L) => (
-                <tr key={L.id}>
-                  <td data-label="Name"><input value={L.name} onChange={(e) => updateLiability(L.id, { name: e.target.value })} /></td>
+                <tr key={L.id} className={rowClass(L.id)}>
+                  <td data-label="Name">
+                    <input value={L.name} onChange={(e) => updateLiability(L.id, { name: e.target.value })} />
+                    <button className="row-toggle" onClick={() => toggleRow(L.id)} aria-label="Toggle details" type="button">
+                      {expandedRows.has(L.id) ? "▾" : "▸"}
+                    </button>
+                  </td>
                   <td data-label="Monthly"><input type="number" value={L.monthly} onChange={(e) => updateLiability(L.id, { monthly: +e.target.value })} /></td>
+                  <td data-label="Start age">
+                    <input
+                      type="number"
+                      placeholder={String(input.startAge)}
+                      value={L.startAge ?? ""}
+                      onChange={(e) => updateLiability(L.id, { startAge: e.target.value === "" ? undefined : +e.target.value })}
+                    />
+                  </td>
                   <td data-label="End age"><input type="number" value={L.endAge} onChange={(e) => updateLiability(L.id, { endAge: +e.target.value })} /></td>
                   <td data-label="Inflation %"><input type="number" step="0.1" value={(L.inflation * 100).toFixed(1)} onChange={(e) => updateLiability(L.id, { inflation: +e.target.value / 100 })} /></td>
                   <td className="row-actions"><button onClick={() => removeLiability(L.id)} aria-label="Remove liability">× Remove</button></td>
@@ -619,7 +652,7 @@ export default function App() {
                 const isLast = idx === input.phases.length - 1;
                 return (
                   <Fragment key={p.id}>
-                    <tr>
+                    <tr className={rowClass(p.id)}>
                       <td>
                         <button
                           className="expand-btn"
@@ -639,6 +672,9 @@ export default function App() {
                             {xferCount} transfer{xferCount > 1 ? "s" : ""}
                           </span>
                         )}
+                        <button className="row-toggle" onClick={() => toggleRow(p.id)} aria-label="Toggle row details" type="button">
+                          {expandedRows.has(p.id) ? "▾" : "▸"}
+                        </button>
                       </td>
                       <td data-label="Start">
                         <span
@@ -805,11 +841,20 @@ export default function App() {
 
       <section className="chart-wrap">
         <h2>Asset trajectory</h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+        <ResponsiveContainer width="100%" height={360}>
+          <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="age" />
-            <YAxis hide={privacy} tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />
+            <XAxis dataKey="age" tickMargin={4} />
+            <YAxis
+              hide={privacy}
+              width={56}
+              tickFormatter={(v) => {
+                const n = Number(v);
+                if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+                return `${n}`;
+              }}
+            />
             <Tooltip formatter={(v) => fmtRM(Number(v))} />
             <Legend />
             <Line type="monotone" dataKey="total" name="Total Assets" stroke="#111" strokeWidth={2.5} dot={false} />

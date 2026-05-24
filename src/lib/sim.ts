@@ -28,6 +28,8 @@ export type Liability = {
   monthly: number;
   endAge: number; // inclusive
   inflation: number;
+  // Optional start age — pay only when age >= startAge. Defaults to plan startAge.
+  startAge?: number;
 };
 
 export type Phase = {
@@ -230,12 +232,13 @@ export function simulate(input: SimInput): SimResult {
     // Liabilities (e.g. house)
     let liabilityTotal = 0;
     for (const L of liabilities) {
-      const stillPaying = input.liabilityEndInclusive
-        ? age <= L.endAge
-        : age < L.endAge;
-      if (stillPaying) {
+      const startAge = L.startAge ?? input.startAge;
+      const inRange = age >= startAge && (input.liabilityEndInclusive ? age <= L.endAge : age < L.endAge);
+      if (inRange) {
+        // Inflation compounds from startAge (not plan start) for liabilities with later start
+        const yearsSinceLiabilityStart = age - startAge;
         liabilityTotal +=
-          inflated(L.monthly, L.inflation, yearIndex) * 12;
+          inflated(L.monthly, L.inflation, yearsSinceLiabilityStart) * 12;
       }
     }
 

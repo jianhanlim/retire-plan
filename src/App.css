@@ -252,6 +252,9 @@ table button:hover { color: var(--danger); background: var(--danger-bg); }
 .expense-total-row td { padding-top: 10px; }
 .expense-total-row td.num { font-variant-numeric: tabular-nums; }
 
+/* Mobile-only row collapse toggle (hidden on desktop) */
+.row-toggle { display: none; }
+
 /* Locked phase values */
 .locked-value {
   display: inline-block;
@@ -387,7 +390,6 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   .verdict { grid-template-columns: 1fr; gap: 10px; }
 
   .chart-wrap { padding: 10px; }
-  .recharts-responsive-container { height: 260px !important; min-height: 260px !important; }
   .recharts-cartesian-axis-tick text { font-size: 10px; }
   .recharts-legend-wrapper { font-size: 11px !important; }
 
@@ -402,11 +404,38 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   .editable-table tbody tr {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
     background: var(--surface);
+    transition: border-color 0.15s;
   }
+  .editable-table tbody tr.expanded { border-color: var(--primary); }
   .editable-table tbody tr:hover { background: var(--surface); }
+
+  /* First cell = header (always visible) with name input + toggle button */
+  .editable-table tr td:first-child {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 !important;
+    border-bottom: none !important;
+    min-height: 44px;
+  }
+  .editable-table tr td:first-child::before { display: none !important; }
+  .editable-table tr td:first-child input { flex: 1; min-width: 0; }
+  .row-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; min-height: 36px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text-soft);
+    cursor: pointer; font-size: 14px; flex-shrink: 0;
+  }
+  .row-toggle:hover { background: var(--surface-2); }
+
+  /* Other cells: hidden when row is collapsed */
+  .editable-table tbody tr:not(.expanded) td:not(:first-child) { display: none; }
+
+  /* Expanded cell layout */
   .editable-table td {
     display: grid;
     grid-template-columns: 110px 1fr;
@@ -446,12 +475,11 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   .expense-total-row td { display: block; grid-template-columns: none; }
   .expense-total-row td::before { display: none; }
 
-  /* Phase row first cell (name + expand button + transfer badge): full-width stack */
-  .phases-card td:first-child { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding-bottom: 12px; }
-  .phases-card td:first-child::before { display: none; }
-  .phases-card td:first-child input { width: 100% !important; }
+  /* Phases-specific: first cell already has expand-btn + name + badges; row-toggle is appended at the end */
   .phases-card .phase-expanded td { display: block; background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); }
   .phases-card .phase-expanded td::before { display: none; }
+  /* Always show the inline transfers editor for the phase that has expandedPhase set */
+  .phases-card tr.expanded ~ tr.phase-expanded td { display: block !important; }
 
   /* Snapshot: keep table but force horizontal scroll & sticky Age */
   .snapshot th:first-child, .snapshot td:first-child {
