@@ -374,10 +374,9 @@ export default function App() {
             <select
               value={profileKey}
               onChange={(e) => applyProfile(e.target.value as ProfileKey)}
-              title="Who you are: age, accounts, expenses, mortgage"
             >
               {(Object.entries(PROFILES) as [ProfileKey, string][]).map(([k, label]) => (
-                <option key={k} value={k} title={PROFILE_DESCRIPTIONS[k]}>{label}</option>
+                <option key={k} value={k}>{label}</option>
               ))}
             </select>
           </label>
@@ -386,14 +385,21 @@ export default function App() {
             <select
               value={strategyKey}
               onChange={(e) => applyStrategy(e.target.value as StrategyKey)}
-              title="How you save: caps, surplus target, transfers"
             >
               {(Object.entries(STRATEGIES) as [StrategyKey, string][]).map(([k, label]) => (
-                <option key={k} value={k} title={STRATEGY_DESCRIPTIONS[k]}>{label}</option>
+                <option key={k} value={k}>{label}</option>
               ))}
             </select>
           </label>
           <button onClick={resetPreset} title="Reload current Profile × Strategy combo">Reset</button>
+        </div>
+        <div className="picker-descriptions">
+          <div>
+            <b>{PROFILES[profileKey]}:</b> {PROFILE_DESCRIPTIONS[profileKey]}
+          </div>
+          <div>
+            <b>{STRATEGIES[strategyKey]}:</b> {STRATEGY_DESCRIPTIONS[strategyKey]}
+          </div>
         </div>
       </header>
 
@@ -462,7 +468,7 @@ export default function App() {
       <details className="section-group">
       <summary className="section-header">💰 Your money</summary>
       <section className="grid">
-        <div className="card">
+        <div className="card editable-table">
           <h2>Accounts</h2>
           <table>
             <thead>
@@ -478,11 +484,11 @@ export default function App() {
             <tbody>
               {input.accounts.map((a) => (
                 <tr key={a.id}>
-                  <td><input value={a.name} onChange={(e) => updateAccount(a.id, { name: e.target.value })} /></td>
-                  <td><input type="number" value={a.balance} onChange={(e) => updateAccount(a.id, { balance: +e.target.value })} /></td>
-                  <td><input type="number" step="0.01" value={(a.rate * 100).toFixed(2)} onChange={(e) => updateAccount(a.id, { rate: +e.target.value / 100 })} /></td>
-                  <td><input type="number" value={a.drainOrder} onChange={(e) => updateAccount(a.id, { drainOrder: +e.target.value })} /></td>
-                  <td>
+                  <td data-label="Name"><input value={a.name} onChange={(e) => updateAccount(a.id, { name: e.target.value })} /></td>
+                  <td data-label="Balance"><input type="number" value={a.balance} onChange={(e) => updateAccount(a.id, { balance: +e.target.value })} /></td>
+                  <td data-label="Rate %"><input type="number" step="0.01" value={(a.rate * 100).toFixed(2)} onChange={(e) => updateAccount(a.id, { rate: +e.target.value / 100 })} /></td>
+                  <td data-label="Drain order"><input type="number" value={a.drainOrder} onChange={(e) => updateAccount(a.id, { drainOrder: +e.target.value })} /></td>
+                  <td data-label="Max Top-up/yr">
                     <input
                       type="number"
                       placeholder="—"
@@ -494,7 +500,7 @@ export default function App() {
                       }
                     />
                   </td>
-                  <td><button onClick={() => removeAccount(a.id)}>×</button></td>
+                  <td className="row-actions"><button onClick={() => removeAccount(a.id)} aria-label="Remove account">× Remove</button></td>
                 </tr>
               ))}
             </tbody>
@@ -508,7 +514,7 @@ export default function App() {
           </p>
         </div>
 
-        <div className="card">
+        <div className="card editable-table">
           <h2>Expenses (monthly)</h2>
           <table>
             <thead>
@@ -523,11 +529,11 @@ export default function App() {
             <tbody>
               {input.expenses.map((e) => (
                 <tr key={e.id}>
-                  <td><input value={e.name} onChange={(ev) => updateExpense(e.id, { name: ev.target.value })} /></td>
-                  <td><input type="number" value={e.monthly} onChange={(ev) => updateExpense(e.id, { monthly: +ev.target.value })} /></td>
-                  <td><input type="number" step="0.1" value={(e.inflation * 100).toFixed(1)} onChange={(ev) => updateExpense(e.id, { inflation: +ev.target.value / 100 })} /></td>
-                  <td><input type="number" value={e.monthlyCap ?? ""} onChange={(ev) => updateExpense(e.id, { monthlyCap: ev.target.value === "" ? undefined : +ev.target.value })} /></td>
-                  <td><button onClick={() => removeExpense(e.id)}>×</button></td>
+                  <td data-label="Name"><input value={e.name} onChange={(ev) => updateExpense(e.id, { name: ev.target.value })} /></td>
+                  <td data-label="Monthly"><input type="number" value={e.monthly} onChange={(ev) => updateExpense(e.id, { monthly: +ev.target.value })} /></td>
+                  <td data-label="Inflation %"><input type="number" step="0.1" value={(e.inflation * 100).toFixed(1)} onChange={(ev) => updateExpense(e.id, { inflation: +ev.target.value / 100 })} /></td>
+                  <td data-label="Monthly cap"><input type="number" placeholder="—" value={e.monthlyCap ?? ""} onChange={(ev) => updateExpense(e.id, { monthlyCap: ev.target.value === "" ? undefined : +ev.target.value })} /></td>
+                  <td className="row-actions"><button onClick={() => removeExpense(e.id)} aria-label="Remove expense">× Remove</button></td>
                 </tr>
               ))}
               <tr className="expense-total-row">
@@ -543,7 +549,7 @@ export default function App() {
           <button onClick={addExpense}>+ Add expense</button>
         </div>
 
-        <div className="card">
+        <div className="card editable-table">
           <h2>Liabilities</h2>
           <table>
             <thead>
@@ -558,11 +564,11 @@ export default function App() {
             <tbody>
               {input.liabilities.map((L) => (
                 <tr key={L.id}>
-                  <td><input value={L.name} onChange={(e) => updateLiability(L.id, { name: e.target.value })} /></td>
-                  <td><input type="number" value={L.monthly} onChange={(e) => updateLiability(L.id, { monthly: +e.target.value })} /></td>
-                  <td><input type="number" value={L.endAge} onChange={(e) => updateLiability(L.id, { endAge: +e.target.value })} /></td>
-                  <td><input type="number" step="0.1" value={(L.inflation * 100).toFixed(1)} onChange={(e) => updateLiability(L.id, { inflation: +e.target.value / 100 })} /></td>
-                  <td><button onClick={() => removeLiability(L.id)}>×</button></td>
+                  <td data-label="Name"><input value={L.name} onChange={(e) => updateLiability(L.id, { name: e.target.value })} /></td>
+                  <td data-label="Monthly"><input type="number" value={L.monthly} onChange={(e) => updateLiability(L.id, { monthly: +e.target.value })} /></td>
+                  <td data-label="End age"><input type="number" value={L.endAge} onChange={(e) => updateLiability(L.id, { endAge: +e.target.value })} /></td>
+                  <td data-label="Inflation %"><input type="number" step="0.1" value={(L.inflation * 100).toFixed(1)} onChange={(e) => updateLiability(L.id, { inflation: +e.target.value / 100 })} /></td>
+                  <td className="row-actions"><button onClick={() => removeLiability(L.id)} aria-label="Remove liability">× Remove</button></td>
                 </tr>
               ))}
             </tbody>
@@ -575,7 +581,7 @@ export default function App() {
       <details className="section-group">
       <summary className="section-header">📅 Your life</summary>
       <section className="grid grid-full">
-        <div className="card phases-card">
+        <div className="card editable-table phases-card">
           <h2>Phases</h2>
           {phaseIssues.banner && (
             <div className="phase-warning">
@@ -644,8 +650,11 @@ export default function App() {
                           <input
                             type="number"
                             value={p.endAge}
-                            onChange={(e) => updatePhaseEndAge(p.id, +e.target.value)}
-                            min={p.startAge}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === "") return; // allow clearing mid-edit
+                              updatePhaseEndAge(p.id, +v);
+                            }}
                             className={phaseIssues.byId[p.id]?.end ? "input-error" : ""}
                             title={phaseIssues.byId[p.id]?.end || undefined}
                           />
