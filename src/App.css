@@ -198,7 +198,7 @@ select {
   padding: 7px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: #ffffff;
   color: var(--text);
   font-size: 14px;
   font-family: inherit;
@@ -245,7 +245,7 @@ table input, table select {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  background: var(--surface);
+  background: #ffffff;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 table input:focus, table select:focus {
@@ -289,6 +289,7 @@ table button:hover { color: var(--danger); background: var(--danger-bg); }
 
 /* Mobile-only row collapse toggle (hidden on desktop) */
 .row-toggle { display: none; }
+.card-title { cursor: default; }
 
 /* Locked phase values */
 .locked-value {
@@ -430,6 +431,26 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
 
   .card { padding: 14px; }
   .section-header { font-size: 16px; margin: 24px 0 12px; }
+
+  /* Inner cards (Accounts, Expenses, Liabilities) collapse by default on mobile */
+  .mobile-collapsible .card-title {
+    cursor: pointer;
+    user-select: none;
+    margin: 0 -4px;
+    padding: 4px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mobile-collapsible .card-title::before {
+    content: "▸";
+    color: var(--primary);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .mobile-collapsible.mobile-open .card-title::before { content: "▾"; }
+  /* Hide body until card is opened */
+  .mobile-collapsible:not(.mobile-open) > *:not(.card-title) { display: none; }
 
   /* All editable tables (Accounts, Expenses, Liabilities, Phases) → stacked cards */
   .editable-table thead { display: none; }

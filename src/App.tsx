@@ -218,6 +218,16 @@ export default function App() {
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showAllYears, setShowAllYears] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [openCards, setOpenCards] = useState<Set<string>>(new Set());
+  const toggleCard = (id: string) =>
+    setOpenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const cardClass = (id: string) =>
+    "card editable-table mobile-collapsible" + (openCards.has(id) ? " mobile-open" : "");
   const toggleRow = (id: string) =>
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -487,8 +497,8 @@ export default function App() {
       <details className="section-group">
       <summary className="section-header">💰 Your money</summary>
       <section className="grid">
-        <div className="card editable-table">
-          <h2>Accounts</h2>
+        <div className={cardClass("accounts")}>
+          <h2 onClick={() => toggleCard("accounts")} className="card-title">Accounts</h2>
           <table>
             <thead>
               <tr>
@@ -531,15 +541,15 @@ export default function App() {
           </table>
           <button onClick={addAccount}>+ Add account</button>
           <p className="hint">
-            <b>Drain order:</b> when the portfolio has to pay (income shortfall), accounts are emptied in
-            ascending Drain number — <b>1 first, then 2, then 3</b>. The preset drains Stocks (4%) before
-            ASM (5%) before EPF (6%), so the highest-compounding account is preserved longest. This is
-            the standard "lowest-return-first" withdrawal strategy.
+            <b>Drain order:</b> when income falls short, accounts are emptied in ascending Drain number —
+            <b> 0 first, then 1, 2, 3</b>. The preset drains <b>Cash (0%)</b> first, then Stocks (4%),
+            ASM (5%), and finally EPF (6%) — so your highest-compounding account is preserved longest.
+            This is the standard "lowest-return-first" withdrawal strategy.
           </p>
         </div>
 
-        <div className="card editable-table">
-          <h2>Expenses (monthly)</h2>
+        <div className={cardClass("expenses")}>
+          <h2 onClick={() => toggleCard("expenses")} className="card-title">Expenses (monthly)</h2>
           <table>
             <thead>
               <tr>
@@ -578,8 +588,8 @@ export default function App() {
           <button onClick={addExpense}>+ Add expense</button>
         </div>
 
-        <div className="card editable-table">
-          <h2>Liabilities</h2>
+        <div className={cardClass("liabilities")}>
+          <h2 onClick={() => toggleCard("liabilities")} className="card-title">Liabilities</h2>
           <table>
             <thead>
               <tr>
