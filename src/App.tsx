@@ -50,19 +50,20 @@ export default function App() {
     }
   }, []);
 
-  const milestones = [
-    input.startAge,
-    input.startAge + 5,
-    input.startAge + 10,
-    45,
-    50,
-    55,
-    60,
-    65,
-    70,
-    75,
-    input.endAge,
-  ].filter((v, i, a) => a.indexOf(v) === i && v >= input.startAge && v <= input.endAge);
+  // Milestones = start/end of every phase + plan start + plan end + runs-out year
+  const milestones = useMemo(() => {
+    const set = new Set<number>();
+    set.add(input.startAge);
+    set.add(input.endAge);
+    for (const p of input.phases) {
+      set.add(p.startAge);
+      set.add(p.endAge);
+    }
+    if (result.runsOutAtAge) set.add(result.runsOutAtAge);
+    return [...set]
+      .filter((v) => v >= input.startAge && v <= input.endAge)
+      .sort((a, b) => a - b);
+  }, [input.startAge, input.endAge, input.phases, result.runsOutAtAge]);
 
   const chartData = result.rows.map((r) => {
     const row: Record<string, number | string> = {
