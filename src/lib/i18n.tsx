@@ -91,6 +91,12 @@ const en: Dict = {
 
   // Phase warning
   "Snap to contiguous": "Snap to contiguous",
+
+  // Income vs Spend chart
+  "Income vs Spend per phase": "Income vs Spend per phase",
+  "Income": "Income",
+  "Spend": "Spend",
+  "incomeVsSpend.hint": "Each phase summed — red bars mean spend exceeded income in that phase. Useful for spotting drain years.",
 };
 
 const ms: Dict = {
@@ -346,6 +352,10 @@ const ms: Dict = {
   "+ Add transfer": "+ Tambah pemindahan",
   "Remove": "Buang",
   "Snap to contiguous": "Selaraskan",
+  "Income vs Spend per phase": "Pendapatan vs Perbelanjaan ikut fasa",
+  "Income": "Pendapatan",
+  "Spend": "Perbelanjaan",
+  "incomeVsSpend.hint": "Setiap fasa dijumlahkan — bar merah bermakna perbelanjaan melebihi pendapatan dalam fasa itu. Berguna untuk mengesan tahun-tahun pengeluaran.",
 
   // Add buttons
 };
@@ -600,6 +610,10 @@ const zh: Dict = {
   "+ Add transfer": "+ 添加转账",
   "Remove": "移除",
   "Snap to contiguous": "对齐为连续",
+  "Income vs Spend per phase": "各阶段 收入 vs 支出",
+  "Income": "收入",
+  "Spend": "支出",
+  "incomeVsSpend.hint": "每个阶段汇总 — 红色条形表示该阶段支出超过收入。有助于发现资金流出年份。",
 };
 
 const dictionaries: Record<Lang, Dict> = { en, ms, zh };

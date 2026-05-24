@@ -395,6 +395,43 @@ export function simulate(input: SimInput): SimResult {
 }
 
 // ============================================================================
+// Account color tokens — consistent across charts, tables, indicators
+// ============================================================================
+
+const ACCOUNT_COLORS: Record<string, string> = {
+  epf: "#0f766e",       // teal — highest-yield
+  asm: "#2563eb",       // blue
+  stk: "#9333ea",       // purple — equity
+  cash: "#64748b",      // slate — liquid
+  "cash-auto": "#94a3b8",
+};
+const FALLBACK_PALETTE = ["#d97706", "#0891b2", "#db2777", "#65a30d", "#7c3aed"];
+
+export function accountColor(accountId: string, fallbackIndex = 0): string {
+  return ACCOUNT_COLORS[accountId] ?? FALLBACK_PALETTE[fallbackIndex % FALLBACK_PALETTE.length];
+}
+
+// Aggregate phase totals for the Income-vs-Spend chart.
+export function aggregatePhases(
+  rows: YearRow[],
+  phases: { id: string; name: string; startAge: number; endAge: number }[]
+): { id: string; name: string; income: number; spend: number; net: number; years: number }[] {
+  return phases.map((p) => {
+    let income = 0;
+    let spend = 0;
+    let years = 0;
+    for (const r of rows) {
+      if (r.age >= p.startAge && r.age <= p.endAge && r.yearIndex > 0) {
+        income += r.income;
+        spend += r.totalSpend;
+        years++;
+      }
+    }
+    return { id: p.id, name: p.name, income, spend, net: income - spend, years };
+  });
+}
+
+// ============================================================================
 // Profile × Strategy model
 // A Profile describes WHO you are (age, accounts, expenses, mortgage, phases).
 // A Strategy describes HOW you save (account caps, surplus target, transfers).

@@ -294,6 +294,35 @@ summary.section-header::before {
 .section-group[open] > summary.section-header::before { content: "▾"; }
 .section-group > section { margin-top: 16px; }
 
+/* Per-section tinted backgrounds — distinct yet subtle */
+.section-group {
+  border-radius: var(--radius);
+  padding: 2px 14px 14px;
+  margin: 8px -14px;
+}
+.section-settings { background: rgba(100, 116, 139, 0.05); }
+.section-money { background: rgba(217, 119, 6, 0.04); }
+.section-life { background: rgba(180, 83, 9, 0.04); }
+.section-results { background: rgba(15, 118, 110, 0.05); }
+
+.section-settings > summary::before { color: #64748b; }
+.section-money > summary::before { color: #d97706; }
+.section-life > summary::before { color: #b45309; }
+.section-results > summary::before { color: var(--primary); }
+
+/* Slightly stronger card shadow for prominence */
+.card { box-shadow: var(--shadow-md); }
+.metric { box-shadow: var(--shadow-md); }
+
+/* Account color dot (used in snapshot headers + future swatches) */
+.acct-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 /* ── Chart ──────────────────────────────────────────────── */
 .chart-wrap {
   background: var(--surface);

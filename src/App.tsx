@@ -1,6 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
-  LineChart,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Cell,
   Line,
   XAxis,
   YAxis,
@@ -15,6 +19,8 @@ import {
   PROFILE_DESCRIPTIONS,
   STRATEGIES,
   STRATEGY_DESCRIPTIONS,
+  accountColor,
+  aggregatePhases,
   combine,
   simulate,
   malaysiaPreset,
@@ -109,6 +115,28 @@ export default function App() {
         return row;
       }),
     [result.rows]
+  );
+
+  // Account IDs/names that appear anywhere in the simulation (includes auto-Cash if created)
+  const allAccountIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of result.rows) for (const a of r.accounts) set.add(a.id);
+    // Preserve user-declared order; auto-created come last
+    return [
+      ...input.accounts.map((a) => a.id).filter((id) => set.has(id)),
+      ...[...set].filter((id) => !input.accounts.some((a) => a.id === id)),
+    ];
+  }, [result.rows, input.accounts]);
+  const allAccountNames = useMemo(() => {
+    const m: Record<string, string> = Object.fromEntries(input.accounts.map((a) => [a.id, a.name]));
+    for (const id of allAccountIds) if (!m[id]) m[id] = id === "cash-auto" ? "Cash (auto)" : id;
+    return m;
+  }, [input.accounts, allAccountIds]);
+
+  // Income-vs-Spend per phase, used by the new bar chart
+  const phaseAgg = useMemo(
+    () => aggregatePhases(result.rows, input.phases),
+    [result.rows, input.phases]
   );
   const lastRow = result.rows[result.rows.length - 1];
 
@@ -395,7 +423,6 @@ export default function App() {
     setSavedNames(listSavedScenarios());
   }
 
-  const colors = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
 
   return (
     <div className="app">
@@ -490,7 +517,7 @@ export default function App() {
         </details>
       </section>
 
-      <details className="section-group">
+      <details className="section-group section-settings">
       <summary className="section-header">{t("⚙️ Settings")}</summary>
       <section className="grid">
         <div className="card">
@@ -525,7 +552,7 @@ export default function App() {
       </section>
       </details>
 
-      <details className="section-group">
+      <details className="section-group section-money">
       <summary className="section-header">{t("💰 Your money")}</summary>
       <section className="grid">
         <div className={cardClass("accounts")}>
@@ -757,7 +784,7 @@ export default function App() {
       </section>
       </details>
 
-      <details className="section-group">
+      <details className="section-group section-life">
       <summary className="section-header">{t("📅 Your life")}</summary>
       <section className="grid grid-full">
         <div className="card editable-table phases-card">
@@ -984,7 +1011,7 @@ export default function App() {
       <section className="chart-wrap">
         <h2>{t("Asset trajectory")}</h2>
         <ResponsiveContainer width="100%" height={360}>
-          <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="age" tickMargin={4} />
             <YAxis
@@ -999,22 +1026,63 @@ export default function App() {
             />
             <Tooltip formatter={(v) => fmtRM(Number(v))} />
             <Legend />
-            <Line type="monotone" dataKey="total" name="Total Assets" stroke="#111" strokeWidth={2.5} dot={false} />
-            {input.accounts.map((a, i) => (
-              <Line
-                key={a.id}
-                type="monotone"
-                dataKey={a.id}
-                name={a.name}
-                stroke={colors[i % colors.length]}
-                strokeWidth={1.5}
-                dot={false}
-              />
-            ))}
+            {/* Stacked area for each account; legend lists each — lowest-rate first looks best at bottom */}
+            {[...allAccountIds].map((id, i) => {
+              const name = allAccountNames[id] ?? id;
+              const color = accountColor(id, i);
+              return (
+                <Area
+                  key={id}
+                  type="monotone"
+                  dataKey={id}
+                  name={name}
+                  stackId="acct"
+                  stroke={color}
+                  fill={color}
+                  fillOpacity={0.55}
+                  strokeWidth={1.5}
+                />
+              );
+            })}
+            {/* Total line on top — anchors the eye, matches Peak Wealth */}
+            <Line type="monotone" dataKey="total" name={t("Total Assets")} stroke="#111" strokeWidth={2.5} dot={false} />
             {result.runsOutAtAge && (
               <ReferenceLine x={result.runsOutAtAge} stroke="#dc2626" strokeDasharray="3 3" label="Empty" />
             )}
-          </LineChart>
+          </AreaChart>
+        </ResponsiveContainer>
+      </section>
+
+      <section className="chart-wrap">
+        <h2>{t("Income vs Spend per phase")}</h2>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+          {t("incomeVsSpend.hint")}
+        </p>
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={phaseAgg.filter((p) => p.years > 0)} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="name" tickMargin={4} />
+            <YAxis
+              hide={privacy}
+              width={56}
+              tickFormatter={(v) => {
+                const n = Number(v);
+                if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+                return `${n}`;
+              }}
+            />
+            <Tooltip
+              formatter={(v, name) => [fmtRM(Number(v)), name === "income" ? t("Income") : t("Spend")]}
+            />
+            <Legend formatter={(v) => (v === "income" ? t("Income") : t("Spend"))} />
+            <Bar dataKey="income" fill="#0f766e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="spend" radius={[4, 4, 0, 0]}>
+              {phaseAgg.filter((p) => p.years > 0).map((p, i) => (
+                <Cell key={i} fill={p.spend > p.income ? "#b91c1c" : "#d97706"} />
+              ))}
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       </section>
 
@@ -1046,8 +1114,11 @@ export default function App() {
                 <th>{t("Age")}</th>
                 <th>{t("Phase")}</th>
                 <th className="num">{t("Total")}</th>
-                {input.accounts.map((a) => (
-                  <th key={a.id} className="num">{a.name}</th>
+                {input.accounts.map((a, i) => (
+                  <th key={a.id} className="num">
+                    <span className="acct-dot" style={{ background: accountColor(a.id, i) }} aria-hidden="true" />
+                    {a.name}
+                  </th>
                 ))}
                 <th className="num">{t("Income (yr)")}</th>
                 <th className="num">{t("Living costs (yr)")}</th>
