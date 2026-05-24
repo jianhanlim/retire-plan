@@ -575,7 +575,7 @@ export default function App() {
       <details className="section-group">
       <summary className="section-header">📅 Your life</summary>
       <section className="grid grid-full">
-        <div className="card">
+        <div className="card phases-card">
           <h2>Phases</h2>
           {phaseIssues.banner && (
             <div className="phase-warning">
@@ -624,7 +624,7 @@ export default function App() {
                           </span>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Start">
                         <span
                           className="locked-value"
                           title={idx === 0 ? "Locked to plan start (edit in Settings)" : "Locked to previous phase end + 1"}
@@ -632,7 +632,7 @@ export default function App() {
                           {p.startAge}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="End">
                         {isLast ? (
                           <span
                             className="locked-value"
@@ -651,9 +651,9 @@ export default function App() {
                           />
                         )}
                       </td>
-                      <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
-                      <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
-                      <td>
+                      <td data-label="Monthly Income"><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
+                      <td data-label="Income Infl %"><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
+                      <td data-label="Save Surplus To">
                         <select
                           value={p.surplusAccountId ?? ""}
                           onChange={(e) => updatePhase(p.id, { surplusAccountId: e.target.value || undefined })}
