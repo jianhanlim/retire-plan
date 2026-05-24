@@ -21,5 +21,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/lib/capture-snapshots.ts",
+    "src/lib/sim.smoke.ts",
+    "src/lib/sim.test.ts",
+    "src/lib/verify.private.ts"
+  ]
 }

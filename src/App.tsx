@@ -245,7 +245,15 @@ export default function App() {
         <p className="tagline">
           Year-by-year retirement simulator. Inputs never leave your browser.
         </p>
-        <div className="actions">
+        <div className="actions actions-secondary">
+          <button onClick={() => setPrivacy((p) => !p)} title="Toggle privacy mode">
+            {privacy ? "🔓 Show" : "🔒 Hide"}
+          </button>
+          <button onClick={handleSave} title="Save current scenario to this browser">💾 Save</button>
+          <button onClick={copyShareLink} title="Copy a shareable URL">🔗 Share</button>
+          <button onClick={() => exportToXlsx(input, result)} title="Download year-by-year XLSX">📊 XLSX</button>
+        </div>
+        <div className="actions actions-primary">
           <label className="preset-picker">
             <span>Strategy:</span>
             <select onChange={(e) => loadPreset(e.target.value as PresetKey)} defaultValue="">
@@ -256,12 +264,6 @@ export default function App() {
             </select>
           </label>
           <button onClick={resetPreset}>Reset</button>
-          <button onClick={() => exportToXlsx(input, result)}>Export XLSX</button>
-          <button onClick={copyShareLink}>Copy share link</button>
-          <button onClick={handleSave}>Save scenario</button>
-          <button onClick={() => setPrivacy((p) => !p)}>
-            {privacy ? "🔓 Show numbers" : "🔒 Hide numbers"}
-          </button>
         </div>
       </header>
 
@@ -290,52 +292,42 @@ export default function App() {
         </details>
       </section>
 
-      <section className="verdict">
-        <div className="metric">
-          <div className="label">Peak Wealth</div>
-          <div className="value">{fmtRM(result.peakAssets)}</div>
-          <div className="sub">at age {result.peakAge}</div>
+      <h2 className="section-header">⚙️ Settings</h2>
+      <section className="grid">
+        <div className="card">
+          <h2>Time horizon</h2>
+          <label>
+            Start age <input type="number" value={input.startAge} onChange={(e) => setInput((s) => ({ ...s, startAge: +e.target.value }))} />
+          </label>
+          <label>
+            End age <input type="number" value={input.endAge} onChange={(e) => setInput((s) => ({ ...s, endAge: +e.target.value }))} />
+          </label>
         </div>
-        <div className="metric">
-          <div className="label">End of Plan ({input.endAge})</div>
-          <div className="value">{lastRow ? fmtRM(lastRow.totalAssets) : "—"}</div>
-        </div>
-        <div className="metric">
-          <div className="label">Outcome</div>
-          <div className={`value ${result.runsOutAtAge ? "bad" : "good"}`}>
-            {result.runsOutAtAge ? `Runs out @ ${result.runsOutAtAge}` : `Solvent through ${input.endAge}`}
-          </div>
+        <div className="card">
+          <h2>Assumption toggles</h2>
+          <label>
+            <input
+              type="checkbox"
+              checked={input.topUpEarnsSameYearInterest}
+              onChange={(e) => setInput((s) => ({ ...s, topUpEarnsSameYearInterest: e.target.checked }))}
+            />
+            Top-ups earn interest in the year they're deposited
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={input.liabilityEndInclusive}
+              onChange={(e) => setInput((s) => ({ ...s, liabilityEndInclusive: e.target.checked }))}
+            />
+            Pay liability through its end age inclusive
+          </label>
+          <p className="hint">
+            Both options together shift the "money runs out" age by several years. Bracket the range.
+          </p>
         </div>
       </section>
 
-      <section className="chart-wrap">
-        <h2>Asset trajectory</h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="age" />
-            <YAxis hide={privacy} tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />
-            <Tooltip formatter={(v) => fmtRM(Number(v))} />
-            <Legend />
-            <Line type="monotone" dataKey="total" name="Total Assets" stroke="#111" strokeWidth={2.5} dot={false} />
-            {input.accounts.map((a, i) => (
-              <Line
-                key={a.id}
-                type="monotone"
-                dataKey={a.id}
-                name={a.name}
-                stroke={colors[i % colors.length]}
-                strokeWidth={1.5}
-                dot={false}
-              />
-            ))}
-            {result.runsOutAtAge && (
-              <ReferenceLine x={result.runsOutAtAge} stroke="#dc2626" strokeDasharray="3 3" label="Empty" />
-            )}
-          </LineChart>
-        </ResponsiveContainer>
-      </section>
-
+      <h2 className="section-header">💰 Your money</h2>
       <section className="grid">
         <div className="card">
           <h2>Accounts</h2>
@@ -436,7 +428,10 @@ export default function App() {
           </table>
           <button onClick={addLiability}>+ Add liability</button>
         </div>
+      </section>
 
+      <h2 className="section-header">📅 Your life</h2>
+      <section className="grid grid-full">
         <div className="card">
           <h2>Phases</h2>
           <table>
@@ -565,38 +560,14 @@ export default function App() {
           </p>
         </div>
 
-        <div className="card">
-          <h2>Assumption toggles</h2>
-          <label>
-            <input
-              type="checkbox"
-              checked={input.topUpEarnsSameYearInterest}
-              onChange={(e) =>
-                setInput((s) => ({ ...s, topUpEarnsSameYearInterest: e.target.checked }))
-              }
-            />
-            Top-ups earn interest in the year they're deposited
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={input.liabilityEndInclusive}
-              onChange={(e) =>
-                setInput((s) => ({ ...s, liabilityEndInclusive: e.target.checked }))
-              }
-            />
-            Pay liability through its end age inclusive
-          </label>
-          <p className="hint">
-            Both options together shift the "money runs out" age by several years. There's no single "right" answer — bracket the range.
-          </p>
-        </div>
+      </section>
 
-        <div className="card">
-          <h2>Saved scenarios</h2>
+      <details className="saved-details">
+        <summary>💾 Saved scenarios ({savedNames.length})</summary>
+        <div>
           {savedNames.length === 0 ? (
             <p className="hint">
-              No saved scenarios yet. Use <b>Save scenario</b> above to store the current setup.
+              No saved scenarios yet. Use <b>💾 Save</b> in the header to store the current setup.
               Scenarios live in your browser only — they're never uploaded.
             </p>
           ) : (
@@ -613,16 +584,54 @@ export default function App() {
             </ul>
           )}
         </div>
+      </details>
 
-        <div className="card">
-          <h2>Time horizon</h2>
-          <label>
-            Start age <input type="number" value={input.startAge} onChange={(e) => setInput((s) => ({ ...s, startAge: +e.target.value }))} />
-          </label>
-          <label>
-            End age <input type="number" value={input.endAge} onChange={(e) => setInput((s) => ({ ...s, endAge: +e.target.value }))} />
-          </label>
+      <h2 className="section-header">📈 Results</h2>
+
+      <section className="verdict">
+        <div className="metric">
+          <div className="label">Peak Wealth</div>
+          <div className="value">{fmtRM(result.peakAssets)}</div>
+          <div className="sub">at age {result.peakAge}</div>
         </div>
+        <div className="metric">
+          <div className="label">End of Plan ({input.endAge})</div>
+          <div className="value">{lastRow ? fmtRM(lastRow.totalAssets) : "—"}</div>
+        </div>
+        <div className="metric">
+          <div className="label">Outcome</div>
+          <div className={`value ${result.runsOutAtAge ? "bad" : "good"}`}>
+            {result.runsOutAtAge ? `Runs out @ ${result.runsOutAtAge}` : `Solvent through ${input.endAge}`}
+          </div>
+        </div>
+      </section>
+
+      <section className="chart-wrap">
+        <h2>Asset trajectory</h2>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={chartData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="age" />
+            <YAxis hide={privacy} tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />
+            <Tooltip formatter={(v) => fmtRM(Number(v))} />
+            <Legend />
+            <Line type="monotone" dataKey="total" name="Total Assets" stroke="#111" strokeWidth={2.5} dot={false} />
+            {input.accounts.map((a, i) => (
+              <Line
+                key={a.id}
+                type="monotone"
+                dataKey={a.id}
+                name={a.name}
+                stroke={colors[i % colors.length]}
+                strokeWidth={1.5}
+                dot={false}
+              />
+            ))}
+            {result.runsOutAtAge && (
+              <ReferenceLine x={result.runsOutAtAge} stroke="#dc2626" strokeDasharray="3 3" label="Empty" />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
       </section>
 
       <section className="card">

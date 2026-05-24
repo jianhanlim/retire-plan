@@ -70,6 +70,38 @@ table button:hover { color: #dc2626; }
 .snapshot td.num, .snapshot th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .shortfall-tag { margin-left: 4px; color: #dc2626; cursor: help; }
 
+.section-header {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+.grid-full { grid-template-columns: 1fr !important; }
+
+.saved-details {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 12px 16px; margin: 16px 0;
+}
+.saved-details summary {
+  cursor: pointer; font-size: 14px; font-weight: 500; color: #1f2937;
+  list-style: none;
+}
+.saved-details summary::before { content: "▸ "; }
+.saved-details details[open] summary::before, .saved-details[open] summary::before { content: "▾ "; }
+.saved-details > div { margin-top: 8px; }
+
+.actions-primary, .actions-secondary { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions-primary { margin-top: 8px; }
+.actions-secondary { position: absolute; top: 24px; right: 24px; }
+.actions-secondary button { padding: 6px 10px; font-size: 13px; }
+header { position: relative; }
+@media (max-width: 700px) {
+  .actions-secondary { position: static; margin-top: 8px; }
+}
+
 .how-it-works {
   background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px;
   padding: 12px 16px; margin: 16px 0;

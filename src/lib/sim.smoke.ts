@@ -5,6 +5,10 @@ import {
   leanFirePreset, noTopUpPreset,
   type SimInput,
 } from "./sim";
+import { EXPECTED_SNAPSHOTS } from "./expected-snapshots";
+import {
+  encodeScenarioToHash, decodeScenarioFromHash,
+} from "./storage";
 
 let passed = 0;
 let failed = 0;
@@ -257,6 +261,64 @@ console.log("\n== XLSX-export number integrity ==");
       }
     }
   }
+}
+
+console.log("\n== Frozen-snapshot regression (vs expected-snapshots.ts) ==");
+{
+  const presets: [keyof typeof EXPECTED_SNAPSHOTS, () => SimInput][] = [
+    ["aggressive", malaysiaPreset],
+    ["conservative", conservativePreset],
+    ["leanFire", leanFirePreset],
+    ["noTopUp", noTopUpPreset],
+  ];
+  for (const [name, fn] of presets) {
+    const result = simulate(fn());
+    const expected = EXPECTED_SNAPSHOTS[name];
+    check(`${name}: peakAge matches`, result.peakAge === expected.peakAge,
+      `got ${result.peakAge}, expected ${expected.peakAge}`);
+    check(`${name}: peakAssets matches`, Math.round(result.peakAssets) === expected.peakAssets,
+      `got ${Math.round(result.peakAssets)}, expected ${expected.peakAssets}`);
+    check(`${name}: runsOutAtAge matches`, result.runsOutAtAge === expected.runsOutAtAge,
+      `got ${result.runsOutAtAge}, expected ${expected.runsOutAtAge}`);
+    for (const row of result.rows) {
+      const exp = expected.perAge[row.age];
+      if (!exp) continue;
+      check(`${name} age ${row.age}: total matches`, Math.round(row.totalAssets) === exp.total,
+        `got ${Math.round(row.totalAssets)}, expected ${exp.total}`);
+      check(`${name} age ${row.age}: income matches`, Math.round(row.income) === exp.income);
+      check(`${name} age ${row.age}: spend matches`, Math.round(row.totalSpend) === exp.spend);
+      check(`${name} age ${row.age}: drained matches`, Math.round(row.portfolioDrained) === exp.drained);
+      check(`${name} age ${row.age}: surplus matches`, Math.round(row.surplus) === exp.surplus);
+      check(`${name} age ${row.age}: surplusSaved matches`, Math.round(row.surplusSaved) === exp.surplusSaved);
+    }
+  }
+}
+
+console.log("\n== Storage round-trip ==");
+{
+  const original = malaysiaPreset();
+  const hash = encodeScenarioToHash(original);
+  const decoded = decodeScenarioFromHash("#s=" + hash);
+  check("URL hash encode → decode preserves shape", !!decoded);
+  if (decoded) {
+    check("Decoded accounts length matches", decoded.accounts.length === original.accounts.length);
+    check("Decoded phases length matches", decoded.phases.length === original.phases.length);
+    check("Decoded expenses length matches", decoded.expenses.length === original.expenses.length);
+    check("Decoded liabilities length matches", decoded.liabilities.length === original.liabilities.length);
+    check("Decoded startAge matches", decoded.startAge === original.startAge);
+    check("Decoded endAge matches", decoded.endAge === original.endAge);
+    // Sim from decoded must produce identical result
+    const a = simulate(original);
+    const b = simulate(decoded);
+    check("Sim(original) peak == Sim(decoded) peak", Math.round(a.peakAssets) === Math.round(b.peakAssets));
+    check("Sim(original) runsOutAtAge == Sim(decoded) runsOutAtAge",
+      a.runsOutAtAge === b.runsOutAtAge);
+  }
+  // Malformed inputs must reject
+  check("Decoder rejects garbage", decodeScenarioFromHash("#s=NOTBASE64") === null);
+  check("Decoder rejects empty", decodeScenarioFromHash("") === null);
+  check("Decoder rejects missing fields",
+    decodeScenarioFromHash("#s=" + encodeScenarioToHash({ accounts: [] } as unknown as SimInput)) === null);
 }
 
 console.log("\n== Summary ==");
