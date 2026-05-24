@@ -281,6 +281,12 @@ export default function App() {
             </tbody>
           </table>
           <button onClick={addAccount}>+ Add account</button>
+          <p className="hint">
+            <b>Drain order:</b> when the portfolio has to pay (income shortfall), accounts are emptied in
+            ascending Drain number — <b>1 first, then 2, then 3</b>. The preset drains Stocks (4%) before
+            ASM (5%) before EPF (6%), so the highest-compounding account is preserved longest. This is
+            the standard "lowest-return-first" withdrawal strategy.
+          </p>
         </div>
 
         <div className="card">
@@ -351,34 +357,61 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {input.phases.map((p) => (
-                <tr key={p.id}>
-                  <td><input value={p.name} onChange={(e) => updatePhase(p.id, { name: e.target.value })} /></td>
-                  <td><input type="number" value={p.startAge} onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })} /></td>
-                  <td><input type="number" value={p.endAge} onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })} /></td>
-                  <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
-                  <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
-                  <td>
-                    <select
-                      value={p.surplusAccountId ?? ""}
-                      onChange={(e) => updatePhase(p.id, { surplusAccountId: e.target.value || undefined })}
-                    >
-                      <option value="">— consumed —</option>
-                      {input.accounts.map((a) => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+              {input.phases.map((p) => {
+                const acctName = (id: string) =>
+                  input.accounts.find((a) => a.id === id)?.name ?? id;
+                return (
+                  <tr key={p.id}>
+                    <td>
+                      <input value={p.name} onChange={(e) => updatePhase(p.id, { name: e.target.value })} />
+                      {(p.topUps?.length || p.transfers?.length) ? (
+                        <div className="phase-strategy">
+                          {p.topUps?.map((t, i) => (
+                            <span key={`t${i}`} className="badge topup" title="Annual top-up (e.g. EPF self-contribution)">
+                              +{fmtRM(t.amount)} → {acctName(t.accountId)}
+                            </span>
+                          ))}
+                          {p.transfers?.map((t, i) => (
+                            <span key={`x${i}`} className="badge transfer" title="Annual transfer (interest-rate arbitrage)">
+                              {acctName(t.fromId)} → {acctName(t.toId)} {fmtRM(t.amount)}/yr
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td><input type="number" value={p.startAge} onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })} /></td>
+                    <td><input type="number" value={p.endAge} onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })} /></td>
+                    <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
+                    <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
+                    <td>
+                      <select
+                        value={p.surplusAccountId ?? ""}
+                        onChange={(e) => updatePhase(p.id, { surplusAccountId: e.target.value || undefined })}
+                      >
+                        <option value="">— consumed —</option>
+                        {input.accounts.map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <p className="hint">
             <b>Monthly Income:</b> your take-home salary during this phase (× 12 = annual income).<br />
             <b>Income Infl:</b> annual raise rate (set 0 for flat).<br />
             <b>Save Surplus To:</b> if income exceeds expenses + liabilities, where to deposit the surplus.
-            Pick <i>— consumed —</i> if surplus is spent on lifestyle (not saved).<br />
-            <b>Top-ups & transfers</b> are kept from the preset and are independent of surplus.
+            Pick <i>— consumed —</i> if surplus is spent on lifestyle (not saved).
+          </p>
+          <p className="hint">
+            <b className="badge topup">+ Top-up</b> = annual deposit from outside the portfolio
+            (e.g. EPF self-contribution from your salary). Independent of income/surplus.<br />
+            <b className="badge transfer">→ Transfer</b> = move money <i>between</i> your accounts each year.
+            The preset shifts <b>RM50k/yr from ASM (5%) to EPF (6%)</b> during semi/full retirement —
+            this is <b>interest-rate arbitrage</b>: same money, higher yield, compounds for decades.
+            (Editing top-ups/transfers requires JSON for now — coming next.)
           </p>
         </div>
 
