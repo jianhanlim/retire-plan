@@ -532,6 +532,16 @@ export default function App() {
       <section className="grid">
         <div className={cardClass("accounts")}>
           <h2 onClick={() => toggleCard("accounts")} className="card-title">Accounts</h2>
+          <details className="col-help">
+            <summary>ⓘ What do these columns mean?</summary>
+            <dl>
+              <dt>Name</dt><dd>Label for the account (e.g. EPF, ASM, Stocks, Cash).</dd>
+              <dt>Balance</dt><dd>How much is in this account today.</dd>
+              <dt>Rate %</dt><dd>Annual return rate. EPF ≈ 6%, ASM ≈ 5%, stocks ≈ 4%, cash 0%.</dd>
+              <dt>Drain</dt><dd>Order this account is emptied when income falls short. Lower number = drained first. Cash (0) goes first so your highest-compounding account is preserved longest.</dd>
+              <dt>Max Top-up</dt><dd>Annual contribution cap (e.g. EPF self-contribution = RM100,000/yr by law). Leave blank for uncapped. Surplus that exceeds the cap overflows to the next-highest-rate account.</dd>
+            </dl>
+          </details>
           <table>
             <thead>
               <tr>
@@ -583,6 +593,15 @@ export default function App() {
 
         <div className={cardClass("expenses")}>
           <h2 onClick={() => toggleCard("expenses")} className="card-title">Expenses (monthly)</h2>
+          <details className="col-help">
+            <summary>ⓘ What do these columns mean?</summary>
+            <dl>
+              <dt>Name</dt><dd>Spending category (food, insurance, subscriptions, etc.).</dd>
+              <dt>Monthly</dt><dd>How much you spend per month at today's prices.</dd>
+              <dt>Infl %</dt><dd>Annual inflation rate for THIS line. Food typically 5%, services 3%, fixed costs 0% — finer than a single "general inflation" assumption.</dd>
+              <dt>Cap</dt><dd>Optional monthly ceiling after inflation. e.g. Food cap RM8,000/mo means it won't grow past that even with 5%/yr inflation. Leave blank for uncapped.</dd>
+            </dl>
+          </details>
           <table>
             <thead>
               <tr>
@@ -623,6 +642,16 @@ export default function App() {
 
         <div className={cardClass("liabilities")}>
           <h2 onClick={() => toggleCard("liabilities")} className="card-title">Liabilities</h2>
+          <details className="col-help">
+            <summary>ⓘ What do these columns mean?</summary>
+            <dl>
+              <dt>Name</dt><dd>What this debt is for (housing loan, car loan, etc.).</dd>
+              <dt>Monthly</dt><dd>Required payment per month at today's value.</dd>
+              <dt>Start Age</dt><dd>When payments begin. Leave blank to start at plan start age.</dd>
+              <dt>End Age</dt><dd>Last age you'll make a payment (inclusive by default — see Settings → Assumption toggles).</dd>
+              <dt>Infl %</dt><dd>Annual growth of the payment. Most fixed loans = 0%.</dd>
+            </dl>
+          </details>
           <table>
             <thead>
               <tr>
@@ -669,6 +698,17 @@ export default function App() {
             Optionally linked to a liability — selling pays off the loan and deposits the net to your
             preferred surplus account.
           </p>
+          <details className="col-help">
+            <summary>ⓘ What do these columns mean?</summary>
+            <dl>
+              <dt>Name</dt><dd>Label (House, Car, Land).</dd>
+              <dt>Current Value</dt><dd>What it's worth today.</dd>
+              <dt>Apprec %</dt><dd>Annual appreciation rate (Malaysia property ≈ 2–4%/yr).</dd>
+              <dt>Linked Loan</dt><dd>If this asset has a loan against it, pick the Liability. When you sell, that loan is auto-paid off from the proceeds.</dd>
+              <dt>Sell Age</dt><dd>When you plan to sell. Leave blank for never.</dd>
+              <dt>Sell Price</dt><dd>Override the projected sale price. Leave blank to use the appreciated value at Sell Age.</dd>
+            </dl>
+          </details>
           <table>
             <thead>
               <tr>
@@ -734,6 +774,20 @@ export default function App() {
       <section className="grid grid-full">
         <div className="card editable-table phases-card">
           <h2>Phases</h2>
+          <details className="col-help">
+            <summary>ⓘ What do these columns mean?</summary>
+            <dl>
+              <dt>Name</dt><dd>Label for this life stage (Career, Semi-Retirement, Retirement, etc.).</dd>
+              <dt>Start</dt><dd>First age in this phase. Auto-locks to previous phase end + 1 (or to plan start for the first phase).</dd>
+              <dt>End</dt><dd>Last age in this phase. Auto-locks to plan end for the last phase.</dd>
+              <dt>Monthly Income</dt><dd>Your take-home pay during this phase. Set 0 for retirement / no income.</dd>
+              <dt>Income Infl %</dt><dd>Annual raise rate within this phase. 0 = flat salary.</dd>
+              <dt>Save Surplus To</dt><dd>Where leftover income (income − expenses − liabilities) is deposited. Excess beyond that account's cap cascades to the next-highest-rate account. Pick "— consumed —" if you'd rather model lifestyle inflation eating all surplus.</dd>
+            </dl>
+            <p className="col-help-extra">
+              <b>Transfers</b> (toggle the ▸ on a row) move money <i>between</i> your accounts each year — e.g. ASM → EPF to arbitrage 5% to 6%. This is different from surplus savings, which is new income coming in.
+            </p>
+          </details>
           {phaseIssues.banner && (
             <div className="phase-warning">
               <span>⚠ {phaseIssues.banner}</span>
@@ -991,6 +1045,20 @@ export default function App() {
             {showAllYears ? "Show milestones only" : "Show every year"}
           </button>
         </div>
+        <details className="col-help">
+          <summary>ⓘ What do these columns mean?</summary>
+          <dl>
+            <dt>Age</dt><dd>Your age in that year.</dd>
+            <dt>Phase</dt><dd>Which life phase you're in that year (Career, Semi-Retirement, etc.).</dd>
+            <dt>Total</dt><dd>Sum of all liquid account balances at year-end.</dd>
+            <dt>[Account columns]</dt><dd>Year-end balance in each of your accounts.</dd>
+            <dt>Income (yr)</dt><dd>Annual take-home income from the phase you're in.</dd>
+            <dt>Living costs (yr)</dt><dd>Sum of all personal expenses (food, insurance, etc.) for that year. Excludes liabilities.</dd>
+            <dt>Liability (yr)</dt><dd>Loan / mortgage payments for that year.</dd>
+            <dt>Total Spend (yr)</dt><dd>Living costs + Liability.</dd>
+            <dt>Drained (yr)</dt><dd>What your portfolio actually paid out (= Total Spend − Income). ⚠ icon means the portfolio couldn't cover the year.</dd>
+          </dl>
+        </details>
         <div className="scroll-x">
           <table className="snapshot">
             <thead>
