@@ -1081,7 +1081,7 @@ export default function App() {
 
       <footer>
         <p className="byline">
-          Built by <b>Jian Han</b> · AI / Data Science
+          Built by <b>a PhD</b> · AI / Data Science
         </p>
         <p>
           Open source on <a href="https://github.com/jianhanlim/retire-plan">GitHub</a> ·
