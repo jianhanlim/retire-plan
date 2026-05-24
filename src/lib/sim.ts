@@ -357,12 +357,26 @@ function baseExpensesAndLiabilities() {
 export const PRESETS = {
   aggressive: "Aggressive Arbitrage",
   conservative: "Conservative No-Transfer",
+  leanFire: "Lean FIRE (retire at 35)",
+  noTopUp: "No Top-Up (just compound)",
 } as const;
 
 export type PresetKey = keyof typeof PRESETS;
 
+export const PRESET_DESCRIPTIONS: Record<PresetKey, string> = {
+  aggressive: "RM15k/mo income with cascade savings + ASM→EPF arbitrage. Highest end-balance.",
+  conservative: "Same income, no transfers. Simpler mental model.",
+  leanFire: "Frugal lifestyle (food cap RM2k, others minimal). Retire fully at 35 — tests whether spartan living lets you exit the workforce early.",
+  noTopUp: "Zero income forever. Pure 'stop saving today, just compound starting balances and pay expenses.' Baseline stress test.",
+};
+
 export function presetByKey(key: PresetKey): SimInput {
-  return key === "conservative" ? conservativePreset() : malaysiaPreset();
+  switch (key) {
+    case "conservative": return conservativePreset();
+    case "leanFire": return leanFirePreset();
+    case "noTopUp": return noTopUpPreset();
+    default: return malaysiaPreset();
+  }
 }
 
 export function malaysiaPreset(): SimInput {
@@ -415,6 +429,62 @@ export function conservativePreset(): SimInput {
       monthlyIncome: 0,
     },
     { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
+  ];
+  return {
+    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  };
+}
+
+// Lean FIRE: aggressive frugality + early full retirement at 35
+export function leanFirePreset(): SimInput {
+  const accounts = baseAccounts();
+  const expenses: ExpenseItem[] = [
+    { id: "food", name: "Food", monthly: 500, inflation: 0.05, monthlyCap: 2000 },
+    { id: "ins", name: "Insurance", monthly: 250, inflation: 0.03, monthlyCap: 1000 },
+    { id: "others", name: "Others", monthly: 150, inflation: 0.03, monthlyCap: 500 },
+    { id: "yt", name: "Subscriptions", monthly: 30, inflation: 0.03, monthlyCap: 100 },
+    { id: "condo", name: "Condo maintenance", monthly: 350, inflation: 0 },
+    { id: "parents", name: "Parents allowance", monthly: 250, inflation: 0 },
+    { id: "carins", name: "Car insurance", monthly: 250, inflation: 0 },
+    { id: "util", name: "Utilities", monthly: 100, inflation: 0 },
+    { id: "fuel", name: "Petrol / EV", monthly: 80, inflation: 0 },
+    { id: "gym", name: "Gym", monthly: 50, inflation: 0 },
+    { id: "tel", name: "Phone/Internet", monthly: 60, inflation: 0 },
+    { id: "veh", name: "Vehicle upkeep", monthly: 42, inflation: 0 },
+    { id: "tax", name: "Property tax", monthly: 42, inflation: 0 },
+  ];
+  const liabilities: Liability[] = [
+    { id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 },
+  ];
+  const phases: Phase[] = [
+    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
+    {
+      id: "sprint", name: "FIRE Sprint", startAge: 32, endAge: 35,
+      monthlyIncome: 15_000, incomeInflation: 0,
+      surplusAccountId: "epf",
+    },
+    {
+      id: "retired", name: "Lean Retirement", startAge: 36, endAge: 80,
+      monthlyIncome: 0,
+    },
+  ];
+  return {
+    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  };
+}
+
+// No Top-Up: zero income, just compound the starting balances and pay expenses
+export function noTopUpPreset(): SimInput {
+  const accounts = baseAccounts();
+  const { expenses, liabilities } = baseExpensesAndLiabilities();
+  const phases: Phase[] = [
+    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
+    {
+      id: "zero", name: "Zero Income (compound only)", startAge: 32, endAge: 80,
+      monthlyIncome: 0,
+    },
   ];
   return {
     startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,

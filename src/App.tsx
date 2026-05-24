@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import {
   PRESETS,
+  PRESET_DESCRIPTIONS,
   presetByKey,
   simulate,
   malaysiaPreset,
@@ -249,7 +250,7 @@ export default function App() {
             <select onChange={(e) => loadPreset(e.target.value as PresetKey)} defaultValue="">
               <option value="" disabled>Load a preset…</option>
               {(Object.entries(PRESETS) as [PresetKey, string][]).map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
+                <option key={k} value={k} title={PRESET_DESCRIPTIONS[k]}>{label}</option>
               ))}
             </select>
           </label>

@@ -1,6 +1,10 @@
 // Smoke / regression tests. Run with: npx tsx src/lib/sim.smoke.ts
 // Asserts invariants that must hold regardless of preset tuning.
-import { simulate, malaysiaPreset, conservativePreset, type SimInput } from "./sim";
+import {
+  simulate, malaysiaPreset, conservativePreset,
+  leanFirePreset, noTopUpPreset,
+  type SimInput,
+} from "./sim";
 
 let passed = 0;
 let failed = 0;
@@ -168,6 +172,32 @@ console.log("\n== Cascade: preferred → next-highest-rate ==");
   check("ASM got overflow (50k)", near(get("asm").balance, 50_000));
   check("Stocks (lowest rate) untouched", near(get("stk").balance, 0));
   check("No Cash account needed", !r.accounts.find((a) => a.id === "cash-auto"));
+}
+
+console.log("\n== Lean FIRE preset ==");
+{
+  const input = leanFirePreset();
+  const result = simulate(input);
+  // Phase change: should fully retire at 36 (sprint ends 35)
+  const sprintEnd = input.phases.find((p) => p.id === "sprint")!.endAge;
+  check("FIRE sprint ends at age 35", sprintEnd === 35);
+  // Food cap is tighter
+  const foodAt80 = result.rows[result.rows.length - 1].expenseBreakdown.find((e) => e.id === "food")!;
+  check("Lean food spend is capped at <= RM2000/mo (24k/yr)", foodAt80.yearly <= 24_000 + 1);
+  console.log(`Lean FIRE: peak ${result.peakAssets.toFixed(0)} @ ${result.peakAge}, runs out: ${result.runsOutAtAge ?? "never"}`);
+}
+
+console.log("\n== No Top-Up preset ==");
+{
+  const input = noTopUpPreset();
+  const result = simulate(input);
+  // All phases must have zero income
+  const anyIncome = input.phases.some((p) => p.monthlyIncome > 0);
+  check("All phases have zero income", !anyIncome);
+  // No surplus saved anywhere
+  const totalSurplusSaved = result.rows.reduce((s, r) => s + r.surplusSaved, 0);
+  check("Zero total surplus saved", totalSurplusSaved === 0);
+  console.log(`No Top-Up: peak ${result.peakAssets.toFixed(0)} @ ${result.peakAge}, runs out: ${result.runsOutAtAge ?? "never"}`);
 }
 
 console.log("\n== Summary ==");
