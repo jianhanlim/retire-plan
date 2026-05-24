@@ -86,6 +86,118 @@ header h1 {
 .picker-hint { color: var(--primary-hover); }
 
 /* ── How it works ───────────────────────────────────────── */
+/* ── Welcome modal ───────────────────────────────────── */
+.welcome-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(28, 25, 23, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; overflow-y: auto;
+}
+.welcome-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  max-width: 640px; width: 100%;
+  padding: 28px 24px;
+  position: relative;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.welcome-close {
+  position: absolute; top: 12px; right: 12px;
+  background: transparent; border: none;
+  font-size: 28px; line-height: 1; cursor: pointer;
+  color: var(--text-mute);
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+}
+.welcome-close:hover { background: var(--surface-2); color: var(--text); }
+
+.welcome-card h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.welcome-sub { color: var(--text-soft); margin: 0 0 20px; font-size: 14px; }
+
+.flow {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px; margin-bottom: 20px;
+}
+.flow-row { display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.flow-row.split { align-items: flex-start; }
+.flow-col { flex: 1; min-width: 0; }
+.flow-box {
+  background: #ffffff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.flow-box.income { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
+.flow-box.expense { background: var(--warn-bg); color: var(--warn); border-color: #fde68a; }
+.flow-box.save { background: var(--primary-soft); color: var(--primary-hover); border-color: #99f6e4; white-space: normal; }
+.flow-box.drain { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; white-space: normal; }
+.flow-arrow { font-size: 20px; color: var(--text-mute); }
+.flow-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+.flow-label.good { color: var(--success); }
+.flow-label.bad { color: var(--danger); }
+.flow-split-line {
+  width: 1px; height: 18px; background: var(--border-strong);
+  margin: 6px auto;
+}
+.flow-footer {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  text-align: center; font-size: 13px; color: var(--text-soft);
+}
+
+.welcome-steps h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--text); }
+.welcome-steps ol { margin: 0; padding-left: 22px; line-height: 1.7; color: var(--text-soft); font-size: 14px; }
+.welcome-steps ol li b { color: var(--text); }
+
+.welcome-privacy {
+  margin: 16px 0 20px; font-size: 13px;
+  color: var(--primary-hover);
+  background: var(--primary-soft-2);
+  border: 1px solid var(--primary-soft);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.welcome-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.welcome-dont-show {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-soft); cursor: pointer;
+}
+.welcome-primary {
+  padding: 10px 24px;
+  background: var(--primary); color: var(--on-primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 14px; font-weight: 600;
+  transition: background 0.15s;
+}
+.welcome-primary:hover { background: var(--primary-hover); }
+
+@media (max-width: 640px) {
+  .welcome-card { padding: 20px 16px; }
+  .welcome-card h2 { font-size: 18px; }
+  .flow-row { flex-direction: column; gap: 6px; }
+  .flow-row.split { flex-direction: row; gap: 8px; }
+  .flow-arrow { transform: rotate(90deg); }
+  .flow-box { font-size: 12px; padding: 6px 10px; white-space: normal; }
+  .welcome-actions { flex-direction: column; align-items: stretch; }
+  .welcome-primary { width: 100%; }
+  .welcome-dont-show { justify-content: center; }
+}
+
 .how-it-works {
   background: var(--primary-soft-2);
   border: 1px solid var(--primary-soft);

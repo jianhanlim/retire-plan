@@ -39,6 +39,7 @@ import {
   saveScenario,
   scenarioExists,
 } from "./lib/storage";
+import { Welcome, shouldAutoShowWelcome } from "./Welcome";
 import "./App.css";
 
 const makeFmt = (privacy: boolean) => (n: number) =>
@@ -61,6 +62,7 @@ export default function App() {
   });
   const [privacy, setPrivacy] = useState(false);
   const [savedNames, setSavedNames] = useState<string[]>(() => listSavedScenarios());
+  const [welcomeOpen, setWelcomeOpen] = useState<boolean>(() => shouldAutoShowWelcome());
   const fmtRM = useMemo(() => makeFmt(privacy), [privacy]);
   const result = useMemo(() => simulate(input), [input]);
 
@@ -395,12 +397,16 @@ export default function App() {
 
   return (
     <div className="app">
+      <Welcome open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
       <header>
         <h1>Money Runway</h1>
         <p className="tagline">
           Year-by-year retirement simulator. Inputs never leave your browser.
         </p>
         <div className="actions actions-secondary">
+          <button onClick={() => setWelcomeOpen(true)} title="How does this work?" aria-label="Help">
+            ❓ Help
+          </button>
           <button onClick={() => setPrivacy((p) => !p)} title="Toggle privacy mode">
             {privacy ? "🔓 Show" : "🔒 Hide"}
           </button>
