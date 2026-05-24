@@ -200,11 +200,12 @@ export default function App() {
     });
   }
 
-  const [profileKey, setProfileKey] = useState<ProfileKey>("midCareer");
+  const [profileKey, setProfileKey] = useState<ProfileKey | "">("");
   const [strategyKey, setStrategyKey] = useState<StrategyKey>("aggressive");
 
   function resetPreset() {
-    setInput(combine(profileKey, strategyKey));
+    if (profileKey) setInput(combine(profileKey, strategyKey));
+    else setInput(malaysiaPreset());
   }
   function applyProfile(k: ProfileKey) {
     setProfileKey(k);
@@ -212,7 +213,7 @@ export default function App() {
   }
   function applyStrategy(k: StrategyKey) {
     setStrategyKey(k);
-    setInput(combine(profileKey, k));
+    if (profileKey) setInput(combine(profileKey, k));
   }
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showAllYears, setShowAllYears] = useState(false);
@@ -356,7 +357,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>retire-plan</h1>
+        <h1>Money Runway</h1>
         <p className="tagline">
           Year-by-year retirement simulator. Inputs never leave your browser.
         </p>
@@ -373,8 +374,11 @@ export default function App() {
             <span>Profile:</span>
             <select
               value={profileKey}
-              onChange={(e) => applyProfile(e.target.value as ProfileKey)}
+              onChange={(e) => {
+                if (e.target.value) applyProfile(e.target.value as ProfileKey);
+              }}
             >
+              <option value="" disabled>Choose your profile…</option>
               {(Object.entries(PROFILES) as [ProfileKey, string][]).map(([k, label]) => (
                 <option key={k} value={k}>{label}</option>
               ))}
@@ -394,9 +398,15 @@ export default function App() {
           <button onClick={resetPreset} title="Reload current Profile × Strategy combo">Reset</button>
         </div>
         <div className="picker-descriptions">
-          <div>
-            <b>{PROFILES[profileKey]}:</b> {PROFILE_DESCRIPTIONS[profileKey]}
-          </div>
+          {profileKey ? (
+            <div>
+              <b>{PROFILES[profileKey]}:</b> {PROFILE_DESCRIPTIONS[profileKey]}
+            </div>
+          ) : (
+            <div className="picker-hint">
+              <b>Pick a profile</b> to load realistic starting numbers, or just start editing the cards below.
+            </div>
+          )}
           <div>
             <b>{STRATEGIES[strategyKey]}:</b> {STRATEGY_DESCRIPTIONS[strategyKey]}
           </div>
@@ -796,7 +806,7 @@ export default function App() {
       <section className="chart-wrap">
         <h2>Asset trajectory</h2>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+          <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="age" />
             <YAxis hide={privacy} tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />

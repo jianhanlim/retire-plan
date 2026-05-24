@@ -83,6 +83,7 @@ header h1 {
   line-height: 1.5;
 }
 .picker-descriptions b { color: var(--text); font-weight: 600; }
+.picker-hint { color: var(--primary-hover); }
 
 /* ── How it works ───────────────────────────────────────── */
 .how-it-works {
@@ -159,8 +160,14 @@ summary.section-header::before {
   padding: 20px;
   box-shadow: var(--shadow-sm);
   margin: 16px 0 24px;
+  overflow: hidden;
+  max-width: 100%;
 }
 .chart-wrap h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+.chart-wrap .recharts-wrapper,
+.chart-wrap .recharts-responsive-container {
+  max-width: 100% !important;
+}
 
 /* ── Grid of cards ──────────────────────────────────────── */
 .grid {
@@ -385,8 +392,10 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
 
   .verdict { grid-template-columns: 1fr; gap: 10px; }
 
-  .chart-wrap { padding: 14px; }
-  .recharts-responsive-container { height: 280px !important; min-height: 280px !important; }
+  .chart-wrap { padding: 10px; }
+  .recharts-responsive-container { height: 260px !important; min-height: 260px !important; }
+  .recharts-cartesian-axis-tick text { font-size: 10px; }
+  .recharts-legend-wrapper { font-size: 11px !important; }
 
   .card { padding: 14px; }
   .section-header { font-size: 16px; margin: 24px 0 12px; }
