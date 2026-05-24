@@ -488,8 +488,8 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   }
   .row-toggle:hover { background: var(--surface-2); }
 
-  /* Other cells: hidden when row is collapsed */
-  .editable-table tbody tr:not(.expanded) td:not(:first-child) { display: none; }
+  /* Other cells: hidden when row is collapsed (excludes the total summary row) */
+  .editable-table tbody tr:not(.expanded):not(.expense-total-row) td:not(:first-child) { display: none; }
 
   /* Expanded cell layout */
   .editable-table td {
@@ -526,10 +526,26 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   }
   .editable-table td.row-actions button:hover { background: var(--danger-bg); }
 
-  /* Expense total row stays compact */
-  .expense-total-row { display: block !important; padding: 10px 0; }
-  .expense-total-row td { display: block; grid-template-columns: none; }
-  .expense-total-row td::before { display: none; }
+  /* Expense total row: full-width footer style, all cells visible, no grid label */
+  .expense-total-row {
+    display: block !important;
+    padding: 12px !important;
+    margin-top: 4px !important;
+    margin-bottom: 0 !important;
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius);
+  }
+  .expense-total-row td {
+    display: block !important;
+    grid-template-columns: none !important;
+    padding: 2px 0 !important;
+    border: none !important;
+    text-align: left !important;
+    min-height: auto !important;
+  }
+  .expense-total-row td::before { display: none !important; }
+  .expense-total-row td.num { font-size: 16px; }
 
   /* Phases-specific: first cell already has expand-btn + name + badges; row-toggle is appended at the end */
   .phases-card .phase-expanded td { display: block; background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); }
