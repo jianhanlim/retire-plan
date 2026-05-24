@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -10,7 +10,18 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { simulate, malaysiaPreset, type SimInput, type Account, type ExpenseItem, type Liability, type Phase } from "./lib/sim";
+import {
+  PRESETS,
+  presetByKey,
+  simulate,
+  malaysiaPreset,
+  type Account,
+  type ExpenseItem,
+  type Liability,
+  type Phase,
+  type PresetKey,
+  type SimInput,
+} from "./lib/sim";
 import { exportToXlsx } from "./lib/exportXlsx";
 import {
   autosave,
@@ -159,6 +170,40 @@ export default function App() {
   function resetPreset() {
     setInput(malaysiaPreset());
   }
+  function loadPreset(key: PresetKey) {
+    setInput(presetByKey(key));
+  }
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+
+  function addTransfer(phaseId: string) {
+    const phase = input.phases.find((p) => p.id === phaseId);
+    if (!phase) return;
+    const firstTwo = input.accounts.slice(0, 2);
+    if (firstTwo.length < 2) return;
+    const newTransfer = {
+      fromId: firstTwo[0].id,
+      toId: firstTwo[1].id,
+      amount: 0,
+    };
+    updatePhase(phaseId, { transfers: [...(phase.transfers ?? []), newTransfer] });
+  }
+  function updateTransfer(
+    phaseId: string,
+    index: number,
+    patch: Partial<{ fromId: string; toId: string; amount: number }>
+  ) {
+    const phase = input.phases.find((p) => p.id === phaseId);
+    if (!phase) return;
+    const transfers = [...(phase.transfers ?? [])];
+    transfers[index] = { ...transfers[index], ...patch };
+    updatePhase(phaseId, { transfers });
+  }
+  function removeTransfer(phaseId: string, index: number) {
+    const phase = input.phases.find((p) => p.id === phaseId);
+    if (!phase) return;
+    const transfers = (phase.transfers ?? []).filter((_, i) => i !== index);
+    updatePhase(phaseId, { transfers });
+  }
   async function copyShareLink() {
     const url = getShareableUrl(input);
     try {
@@ -199,7 +244,16 @@ export default function App() {
           Year-by-year retirement simulator. Inputs never leave your browser.
         </p>
         <div className="actions">
-          <button onClick={resetPreset}>Reset to preset</button>
+          <label className="preset-picker">
+            <span>Strategy:</span>
+            <select onChange={(e) => loadPreset(e.target.value as PresetKey)} defaultValue="">
+              <option value="" disabled>Load a preset…</option>
+              {(Object.entries(PRESETS) as [PresetKey, string][]).map(([k, label]) => (
+                <option key={k} value={k}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <button onClick={resetPreset}>Reset</button>
           <button onClick={() => exportToXlsx(input, result)}>Export XLSX</button>
           <button onClick={copyShareLink}>Copy share link</button>
           <button onClick={handleSave}>Save scenario</button>
@@ -208,6 +262,31 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      <section className="how-it-works">
+        <details>
+          <summary>How does this work?</summary>
+          <div>
+            <p>
+              <b>Each year:</b> your income covers as much of your expenses + liabilities as it can.
+              Whatever it doesn't cover comes out of your accounts (drained in <b>Drain order</b>).
+            </p>
+            <p>
+              <b>Leftover income (surplus):</b> deposited via cascade →
+              first into your <b>Save Surplus To</b> account (up to its <b>Max Top-up</b> cap),
+              overflow goes to the next-highest-rate account, finally to <b>Cash (0%)</b> if all caps are hit.
+            </p>
+            <p>
+              <b>Transfers:</b> move existing balance between accounts each year (e.g. ASM→EPF arbitrage).
+              Different from savings — this doesn't add new money.
+            </p>
+            <p>
+              <b>Privacy:</b> everything is computed in your browser. Share-link uses the URL hash fragment, which
+              browsers never send to servers. Saved scenarios live only in this browser's local storage.
+            </p>
+          </div>
+        </details>
+      </section>
 
       <section className="verdict">
         <div className="metric">
@@ -261,10 +340,11 @@ export default function App() {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Balance</th>
-                <th>Rate %</th>
-                <th>Drain</th>
+                <th title="Account name (e.g. EPF, ASM, brokerage)">Name</th>
+                <th title="Starting balance">Balance</th>
+                <th title="Annual return rate, e.g. EPF 6%">Rate %</th>
+                <th title="Order accounts are drained when income is short (1 = first)">Drain</th>
+                <th title="Annual deposit limit (e.g. EPF self-contribution capped at RM100k). Leave blank for uncapped.">Max Top-up</th>
                 <th></th>
               </tr>
             </thead>
@@ -275,6 +355,18 @@ export default function App() {
                   <td><input type="number" value={a.balance} onChange={(e) => updateAccount(a.id, { balance: +e.target.value })} /></td>
                   <td><input type="number" step="0.01" value={(a.rate * 100).toFixed(2)} onChange={(e) => updateAccount(a.id, { rate: +e.target.value / 100 })} /></td>
                   <td><input type="number" value={a.drainOrder} onChange={(e) => updateAccount(a.id, { drainOrder: +e.target.value })} /></td>
+                  <td>
+                    <input
+                      type="number"
+                      placeholder="—"
+                      value={a.maxYearlyTopUp ?? ""}
+                      onChange={(e) =>
+                        updateAccount(a.id, {
+                          maxYearlyTopUp: e.target.value === "" ? undefined : +e.target.value,
+                        })
+                      }
+                    />
+                  </td>
                   <td><button onClick={() => removeAccount(a.id)}>×</button></td>
                 </tr>
               ))}
@@ -358,43 +450,99 @@ export default function App() {
             </thead>
             <tbody>
               {input.phases.map((p) => {
-                const acctName = (id: string) =>
-                  input.accounts.find((a) => a.id === id)?.name ?? id;
+                const expanded = expandedPhase === p.id;
+                const xferCount = p.transfers?.length ?? 0;
                 return (
-                  <tr key={p.id}>
-                    <td>
-                      <input value={p.name} onChange={(e) => updatePhase(p.id, { name: e.target.value })} />
-                      {(p.topUps?.length || p.transfers?.length) ? (
-                        <div className="phase-strategy">
-                          {p.topUps?.map((t, i) => (
-                            <span key={`t${i}`} className="badge topup" title="Annual top-up (e.g. EPF self-contribution)">
-                              +{fmtRM(t.amount)} → {acctName(t.accountId)}
-                            </span>
+                  <Fragment key={p.id}>
+                    <tr>
+                      <td>
+                        <button
+                          className="expand-btn"
+                          onClick={() => setExpandedPhase(expanded ? null : p.id)}
+                          title="Edit transfers"
+                          aria-label="Toggle transfers editor"
+                        >
+                          {expanded ? "▾" : "▸"}
+                        </button>
+                        <input
+                          value={p.name}
+                          onChange={(e) => updatePhase(p.id, { name: e.target.value })}
+                          style={{ width: "calc(100% - 28px)" }}
+                        />
+                        {xferCount > 0 && (
+                          <span className="badge transfer" title={`${xferCount} transfer rule(s)`}>
+                            {xferCount} transfer{xferCount > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </td>
+                      <td><input type="number" value={p.startAge} onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })} /></td>
+                      <td><input type="number" value={p.endAge} onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })} /></td>
+                      <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
+                      <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
+                      <td>
+                        <select
+                          value={p.surplusAccountId ?? ""}
+                          onChange={(e) => updatePhase(p.id, { surplusAccountId: e.target.value || undefined })}
+                        >
+                          <option value="">— consumed —</option>
+                          {input.accounts.map((a) => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
                           ))}
-                          {p.transfers?.map((t, i) => (
-                            <span key={`x${i}`} className="badge transfer" title="Annual transfer (interest-rate arbitrage)">
-                              {acctName(t.fromId)} → {acctName(t.toId)} {fmtRM(t.amount)}/yr
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td><input type="number" value={p.startAge} onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })} /></td>
-                    <td><input type="number" value={p.endAge} onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })} /></td>
-                    <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
-                    <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
-                    <td>
-                      <select
-                        value={p.surplusAccountId ?? ""}
-                        onChange={(e) => updatePhase(p.id, { surplusAccountId: e.target.value || undefined })}
-                      >
-                        <option value="">— consumed —</option>
-                        {input.accounts.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
+                        </select>
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="phase-expanded">
+                        <td colSpan={6}>
+                          <div className="transfers-editor">
+                            <div className="te-header">
+                              <b>Annual transfers</b>
+                              <span className="hint" style={{ marginLeft: 8 }}>
+                                Move existing balance between accounts each year (e.g. ASM→EPF arbitrage).
+                                Different from surplus cascade (that handles new savings).
+                              </span>
+                            </div>
+                            {(p.transfers ?? []).map((t, i) => (
+                              <div key={i} className="te-row">
+                                <span>Move</span>
+                                <input
+                                  type="number"
+                                  value={t.amount}
+                                  onChange={(e) => updateTransfer(p.id, i, { amount: +e.target.value })}
+                                  className="te-amount"
+                                />
+                                <span>from</span>
+                                <select
+                                  value={t.fromId}
+                                  onChange={(e) => updateTransfer(p.id, i, { fromId: e.target.value })}
+                                >
+                                  {input.accounts.map((a) => (
+                                    <option key={a.id} value={a.id}>{a.name}</option>
+                                  ))}
+                                </select>
+                                <span>→</span>
+                                <select
+                                  value={t.toId}
+                                  onChange={(e) => updateTransfer(p.id, i, { toId: e.target.value })}
+                                >
+                                  {input.accounts.map((a) => (
+                                    <option key={a.id} value={a.id}>{a.name}</option>
+                                  ))}
+                                </select>
+                                <button onClick={() => removeTransfer(p.id, i)} title="Remove">×</button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => addTransfer(p.id)}
+                              disabled={input.accounts.length < 2}
+                            >
+                              + Add transfer
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

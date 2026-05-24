@@ -59,6 +59,49 @@ table button:hover { color: #dc2626; }
 .snapshot td.num, .snapshot th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .shortfall-tag { margin-left: 4px; color: #dc2626; cursor: help; }
 
+.how-it-works {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px;
+  padding: 12px 16px; margin: 16px 0;
+}
+.how-it-works summary {
+  cursor: pointer; font-size: 14px; font-weight: 500; color: #1e40af;
+  list-style: none;
+}
+.how-it-works summary::before { content: "▸ "; }
+.how-it-works details[open] summary::before { content: "▾ "; }
+.how-it-works p { margin: 8px 0; font-size: 13px; color: #1e3a8a; }
+
+.preset-picker { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4b5563; }
+.preset-picker select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 14px; }
+
+.expand-btn {
+  background: transparent; border: 1px solid #e5e7eb; cursor: pointer;
+  padding: 2px 6px; margin-right: 4px; border-radius: 4px; font-size: 12px;
+  color: #4b5563; line-height: 1;
+}
+.expand-btn:hover { background: #f3f4f6; }
+
+.phase-expanded > td { background: #f9fafb; padding: 12px; }
+.transfers-editor { display: flex; flex-direction: column; gap: 8px; }
+.te-header { font-size: 13px; }
+.te-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 4px 0;
+}
+.te-row select, .te-row input { padding: 4px 8px; }
+.te-row .te-amount { width: 110px; text-align: right; }
+.te-row button {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 16px; color: #9ca3af; padding: 0 6px;
+}
+.te-row button:hover { color: #dc2626; }
+.transfers-editor > button:last-child {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px dashed #d1d5db; border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+
 .phase-strategy { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
 .badge {
   display: inline-block;

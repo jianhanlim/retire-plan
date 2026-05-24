@@ -7,6 +7,11 @@ export type Account = {
   balance: number;
   rate: number; // e.g. 0.06 for 6%
   drainOrder: number; // lower = drained first
+  // Annual cap on deposits from surplus (e.g. EPF self-contribution limit RM100k).
+  // Overflow cascades to next-highest-rate account.
+  maxYearlyTopUp?: number;
+  // Marker for the lazy-created 0% Cash fallback. Don't set manually.
+  isCash?: boolean;
 };
 
 export type ExpenseItem = {
@@ -34,12 +39,13 @@ export type Phase = {
   monthlyIncome: number;
   // Optional inflation rate applied to income each year (e.g. raises)
   incomeInflation?: number; // default 0
-  // If set, income surplus (income - expenses - liabilities) is deposited into this account
-  // at end of year. If not set, surplus is "consumed" (lifestyle creep) and not saved.
+  // Preferred destination for income surplus (income − expenses − liabilities).
+  // If the account's maxYearlyTopUp cap is hit, overflow cascades to the next-highest-rate
+  // account that still has room. If all caps are saturated, a Cash (0%) account is
+  // auto-created to absorb the rest. Leave undefined to consume surplus as lifestyle.
   surplusAccountId?: string;
-  // Optional top-ups applied at start of year
-  topUps?: { accountId: string; amount: number }[];
-  // Optional transfers between accounts at start of year (until source empty)
+  // Optional transfers between accounts at start of year (until source empty).
+  // Different from surplus deposits — transfers move EXISTING balance, not new money.
   transfers?: { fromId: string; toId: string; amount: number }[];
 };
 
@@ -62,7 +68,6 @@ export type YearRow = {
   income: number;
   surplus: number;
   surplusSaved: number;
-  topUps: number;
   transfers: number;
   expenseTotal: number;
   liabilityTotal: number;
@@ -106,7 +111,16 @@ export function simulate(input: SimInput): SimResult {
   const { startAge, endAge, expenses, liabilities, phases } = input;
 
   // Deep-copy account state
-  type AcctState = { id: string; name: string; balance: number; rate: number; principal: number; drainOrder: number };
+  type AcctState = {
+    id: string;
+    name: string;
+    balance: number;
+    rate: number;
+    principal: number;
+    drainOrder: number;
+    maxYearlyTopUp?: number;
+    isCash?: boolean;
+  };
   const accts: AcctState[] = input.accounts.map((a) => ({
     id: a.id,
     name: a.name,
@@ -114,7 +128,64 @@ export function simulate(input: SimInput): SimResult {
     rate: a.rate,
     principal: a.balance, // initial balance counts as principal
     drainOrder: a.drainOrder,
+    maxYearlyTopUp: a.maxYearlyTopUp,
+    isCash: a.isCash,
   }));
+
+  // Track per-account top-up amount for the current year (for cap enforcement
+  // and for the topUpEarnsSameYearInterest exclusion). Reset each year.
+  const yearlyTopUps = new Map<string, number>();
+
+  function ensureCashAccount(): AcctState {
+    let cash = accts.find((a) => a.isCash);
+    if (cash) return cash;
+    const maxDrain = accts.reduce((m, a) => Math.max(m, a.drainOrder), 0);
+    cash = {
+      id: "cash-auto",
+      name: "Cash",
+      balance: 0,
+      rate: 0,
+      principal: 0,
+      drainOrder: maxDrain + 1, // drained last (no growth to preserve)
+      isCash: true,
+    };
+    accts.push(cash);
+    return cash;
+  }
+
+  // Cascade-fill an amount into the preferred account first, then by rate descending,
+  // honoring each account's maxYearlyTopUp. Auto-creates a Cash account if everything
+  // is capped and overflow remains.
+  function depositCascade(amount: number, preferredId?: string): number {
+    if (amount <= 0) return 0;
+    let remaining = amount;
+    const visited = new Set<string>();
+    const tryFill = (acct: AcctState | undefined) => {
+      if (!acct || remaining <= 0 || visited.has(acct.id)) return;
+      visited.add(acct.id);
+      const already = yearlyTopUps.get(acct.id) ?? 0;
+      const cap = acct.maxYearlyTopUp;
+      const room = cap == null ? Infinity : Math.max(0, cap - already);
+      const put = Math.min(remaining, room);
+      if (put > 0) {
+        acct.balance += put;
+        acct.principal += put;
+        yearlyTopUps.set(acct.id, already + put);
+        remaining -= put;
+      }
+    };
+    if (preferredId) tryFill(accts.find((a) => a.id === preferredId));
+    const byRate = [...accts]
+      .filter((a) => !a.isCash)
+      .sort((a, b) => b.rate - a.rate);
+    for (const a of byRate) tryFill(a);
+    if (remaining > 0) {
+      const cash = ensureCashAccount();
+      visited.delete(cash.id);
+      tryFill(cash);
+    }
+    return amount - remaining;
+  }
 
   const rows: YearRow[] = [];
   let peakAssets = 0;
@@ -126,19 +197,9 @@ export function simulate(input: SimInput): SimResult {
     const phase = phaseFor(phases, age);
     const phaseName = phase?.name ?? (yearIndex === 0 ? "Year 0" : "Unphased");
 
-    let topUpsTotal = 0;
     let transfersTotal = 0;
+    yearlyTopUps.clear();
 
-    // Start-of-year: top-ups
-    if (phase?.topUps) {
-      for (const t of phase.topUps) {
-        const acct = accts.find((a) => a.id === t.accountId);
-        if (!acct) continue;
-        acct.balance += t.amount;
-        acct.principal += t.amount;
-        topUpsTotal += t.amount;
-      }
-    }
     // Start-of-year: transfers
     if (phase?.transfers) {
       for (const t of phase.transfers) {
@@ -207,33 +268,21 @@ export function simulate(input: SimInput): SimResult {
     if (shortfall > 0 && runsOutAtAge === null) runsOutAtAge = age;
 
     // Interest credit at end of year (skip year 0).
-    // Credited BEFORE surplus is deposited so surplus (a year-end inflow) never
-    // earns same-year interest — economically consistent regardless of toggle.
+    // Credited BEFORE surplus is deposited so the surplus (year-end inflow) doesn't
+    // earn same-year interest.
     let interestEarned = 0;
     if (yearIndex > 0) {
       for (const acct of accts) {
-        let base = acct.balance;
-        if (!input.topUpEarnsSameYearInterest) {
-          // Subtract scheduled top-ups of this year before interest
-          const tu =
-            phase?.topUps?.find((x) => x.accountId === acct.id)?.amount ?? 0;
-          base = Math.max(0, base - tu);
-        }
-        const earned = base * acct.rate;
+        const earned = acct.balance * acct.rate;
         acct.balance += earned;
         interestEarned += earned;
       }
     }
 
-    // Surplus savings: deposit after interest so it doesn't earn same-year interest
+    // Surplus savings cascade: preferred → next-highest-rate → Cash (0%, lazy)
     let surplusSaved = 0;
     if (surplus > 0 && phase?.surplusAccountId) {
-      const target = accts.find((a) => a.id === phase.surplusAccountId);
-      if (target) {
-        target.balance += surplus;
-        target.principal += surplus;
-        surplusSaved = surplus;
-      }
+      surplusSaved = depositCascade(surplus, phase.surplusAccountId);
     }
 
     const totalAssets = accts.reduce((s, a) => s + a.balance, 0);
@@ -251,7 +300,6 @@ export function simulate(input: SimInput): SimResult {
       income: annualIncome,
       surplus,
       surplusSaved,
-      topUps: topUpsTotal,
       transfers: transfersTotal,
       expenseTotal,
       liabilityTotal,
@@ -275,13 +323,16 @@ export function simulate(input: SimInput): SimResult {
   return { rows, runsOutAtAge, peakAge, peakAssets };
 }
 
-// ---------- Sample preset (illustrative numbers; users should customize) ----------
-export function malaysiaPreset(): SimInput {
-  const accounts: Account[] = [
+// ---------- Sample presets (illustrative numbers; users should customize) ----------
+function baseAccounts(): Account[] {
+  return [
     { id: "stk", name: "Stocks", balance: 75_000, rate: 0.04, drainOrder: 1 },
     { id: "asm", name: "ASM", balance: 244_000, rate: 0.05, drainOrder: 2 },
-    { id: "epf", name: "EPF", balance: 200_000, rate: 0.06, drainOrder: 3 },
+    { id: "epf", name: "EPF", balance: 200_000, rate: 0.06, drainOrder: 3, maxYearlyTopUp: 100_000 },
   ];
+}
+
+function baseExpensesAndLiabilities() {
   const expenses: ExpenseItem[] = [
     { id: "food", name: "Food", monthly: 750, inflation: 0.05, monthlyCap: 3500 },
     { id: "ins", name: "Insurance", monthly: 350, inflation: 0.03, monthlyCap: 1000 },
@@ -300,61 +351,73 @@ export function malaysiaPreset(): SimInput {
   const liabilities: Liability[] = [
     { id: "house", name: "Housing loan", monthly: 2250, inflation: 0, endAge: 60 },
   ];
+  return { expenses, liabilities };
+}
+
+export const PRESETS = {
+  aggressive: "Aggressive Arbitrage",
+  conservative: "Conservative No-Transfer",
+} as const;
+
+export type PresetKey = keyof typeof PRESETS;
+
+export function presetByKey(key: PresetKey): SimInput {
+  return key === "conservative" ? conservativePreset() : malaysiaPreset();
+}
+
+export function malaysiaPreset(): SimInput {
+  const accounts = baseAccounts();
+  const { expenses, liabilities } = baseExpensesAndLiabilities();
   const phases: Phase[] = [
+    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
     {
-      id: "current",
-      name: "Year 0 (Current)",
-      startAge: 31,
-      endAge: 31,
-      monthlyIncome: 0,
-    },
-    {
-      id: "accum",
-      name: "Accumulation",
-      startAge: 32,
-      endAge: 36,
-      monthlyIncome: 10_000,
-      incomeInflation: 0,
+      id: "accum", name: "Accumulation", startAge: 32, endAge: 36,
+      monthlyIncome: 15_000, incomeInflation: 0,
       surplusAccountId: "epf",
-      topUps: [
-        { accountId: "epf", amount: 50_000 },
-        { accountId: "asm", amount: 10_000 },
-      ],
     },
     {
-      id: "semi",
-      name: "Semi-Retirement",
-      startAge: 37,
-      endAge: 41,
-      monthlyIncome: 3_000,
-      incomeInflation: 0,
+      id: "semi", name: "Semi-Retirement", startAge: 37, endAge: 41,
+      monthlyIncome: 3_000, incomeInflation: 0,
       surplusAccountId: "epf",
       transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }],
     },
     {
-      id: "full",
-      name: "Full Retirement",
-      startAge: 42,
-      endAge: 60,
+      id: "full", name: "Full Retirement", startAge: 42, endAge: 60,
       monthlyIncome: 0,
       transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }],
     },
-    {
-      id: "debtfree",
-      name: "Debt-Free Retirement",
-      startAge: 61,
-      endAge: 80,
-      monthlyIncome: 0,
-    },
+    { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
   ];
   return {
-    startAge: 31,
-    endAge: 80,
-    accounts,
-    expenses,
-    liabilities,
-    phases,
-    topUpEarnsSameYearInterest: true,
-    liabilityEndInclusive: true,
+    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
+  };
+}
+
+export function conservativePreset(): SimInput {
+  const accounts = baseAccounts();
+  const { expenses, liabilities } = baseExpensesAndLiabilities();
+  const phases: Phase[] = [
+    { id: "current", name: "Year 0 (Current)", startAge: 31, endAge: 31, monthlyIncome: 0 },
+    {
+      id: "accum", name: "Accumulation", startAge: 32, endAge: 36,
+      monthlyIncome: 15_000, incomeInflation: 0,
+      surplusAccountId: "epf",
+    },
+    {
+      id: "semi", name: "Semi-Retirement", startAge: 37, endAge: 41,
+      monthlyIncome: 3_000, incomeInflation: 0,
+      surplusAccountId: "epf",
+      // No transfers — money stays where it is, drained in account order
+    },
+    {
+      id: "full", name: "Full Retirement", startAge: 42, endAge: 60,
+      monthlyIncome: 0,
+    },
+    { id: "debtfree", name: "Debt-Free Retirement", startAge: 61, endAge: 80, monthlyIncome: 0 },
+  ];
+  return {
+    startAge: 31, endAge: 80, accounts, expenses, liabilities, phases,
+    topUpEarnsSameYearInterest: true, liabilityEndInclusive: true,
   };
 }
