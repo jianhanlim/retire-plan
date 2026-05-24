@@ -14,7 +14,18 @@ header h1 {
   letter-spacing: -0.02em;
   color: var(--text);
 }
-.tagline { color: var(--text-soft); margin: 6px 0 16px; font-size: 15px; }
+.tagline { color: var(--text-soft); margin: 6px 0 4px; font-size: 16px; font-weight: 500; }
+.why {
+  color: var(--text-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+  max-width: 880px;
+}
+.why b { color: var(--text); font-weight: 600; }
+@media (max-width: 640px) {
+  .why { font-size: 12.5px; line-height: 1.55; }
+}
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .actions-primary { margin-top: 12px; }

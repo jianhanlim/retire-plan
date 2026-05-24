@@ -401,7 +401,14 @@ export default function App() {
       <header>
         <h1>Money Runway</h1>
         <p className="tagline">
-          Year-by-year retirement simulator. Inputs never leave your browser.
+          A retirement simulator that takes real life seriously.
+        </p>
+        <p className="why">
+          Most calculators flatten everything to one inflation rate and one savings account. Money Runway models
+          <b> per-line expense inflation</b>, <b>per-account return rates</b>, <b>contribution caps</b> (e.g. EPF RM100k/yr),
+          <b> cascade savings</b> (preferred → next-highest-rate → cash), <b>withdrawal drain order</b>,
+          <b> sellable assets</b> with linked loans, and <b>life-phase income changes</b> (career → semi-retirement → retirement).
+          All math runs in your browser — no signup, no data leaves your device.
         </p>
         <div className="actions actions-secondary">
           <button onClick={() => setWelcomeOpen(true)} title="How does this work?" aria-label="Help">
