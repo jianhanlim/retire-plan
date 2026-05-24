@@ -519,6 +519,7 @@ export default function App() {
 
       <details className="section-group section-settings">
       <summary className="section-header">{t("⚙️ Settings")}</summary>
+      <p className="section-intro">{t("section.settings.intro")}</p>
       <section className="grid">
         <div className="card">
           <h2>{t("Time horizon")}</h2>
@@ -554,6 +555,7 @@ export default function App() {
 
       <details className="section-group section-money">
       <summary className="section-header">{t("💰 Your money")}</summary>
+      <p className="section-intro">{t("section.money.intro")}</p>
       <section className="grid">
         <div className={cardClass("accounts")}>
           <h2 onClick={() => toggleCard("accounts")} className="card-title">{t("Accounts")}</h2>
@@ -786,6 +788,7 @@ export default function App() {
 
       <details className="section-group section-life">
       <summary className="section-header">{t("📅 Your life")}</summary>
+      <p className="section-intro">{t("section.life.intro")}</p>
       <section className="grid grid-full">
         <div className="card editable-table phases-card">
           <h2>{t("Phases")}</h2>

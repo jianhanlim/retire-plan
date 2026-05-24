@@ -314,6 +314,15 @@ summary.section-header::before {
 .card { box-shadow: var(--shadow-md); }
 .metric { box-shadow: var(--shadow-md); }
 
+/* One-line section intro shown when a section group is opened */
+.section-intro {
+  margin: 4px 0 14px;
+  font-size: 13px;
+  color: var(--text-soft);
+  line-height: 1.55;
+  font-style: italic;
+}
+
 /* Account color dot (used in snapshot headers + future swatches) */
 .acct-dot {
   display: inline-block;

@@ -97,6 +97,10 @@ const en: Dict = {
   "Income": "Income",
   "Spend": "Spend",
   "incomeVsSpend.hint": "Each phase summed — red bars mean spend exceeded income in that phase. Useful for spotting drain years.",
+
+  "section.settings.intro": "Time horizon (start/end age) and the two modeling toggles. Most users only set these once.",
+  "section.money.intro": "Your financial snapshot today — accounts you own, monthly expenses, ongoing loans, and any sellable assets like a house or car.",
+  "section.life.intro": "Your life broken into phases (career, semi-retire, full retire). Each phase has a monthly income and where surplus is saved.",
 };
 
 const ms: Dict = {
@@ -356,6 +360,9 @@ const ms: Dict = {
   "Income": "Pendapatan",
   "Spend": "Perbelanjaan",
   "incomeVsSpend.hint": "Setiap fasa dijumlahkan — bar merah bermakna perbelanjaan melebihi pendapatan dalam fasa itu. Berguna untuk mengesan tahun-tahun pengeluaran.",
+  "section.settings.intro": "Jangka masa (umur mula/tamat) dan dua andaian model. Kebanyakan pengguna hanya tetapkan ini sekali.",
+  "section.money.intro": "Gambaran kewangan anda hari ini — akaun yang anda miliki, perbelanjaan bulanan, pinjaman semasa, dan aset boleh dijual seperti rumah atau kereta.",
+  "section.life.intro": "Hidup anda dibahagikan kepada fasa (kerjaya, separa-persaraan, persaraan penuh). Setiap fasa ada pendapatan bulanan dan ke mana lebihan disimpan.",
 
   // Add buttons
 };
@@ -614,6 +621,9 @@ const zh: Dict = {
   "Income": "收入",
   "Spend": "支出",
   "incomeVsSpend.hint": "每个阶段汇总 — 红色条形表示该阶段支出超过收入。有助于发现资金流出年份。",
+  "section.settings.intro": "时间范围 (起始/结束年龄) 和两个模型假设开关。大多数用户只需设置一次。",
+  "section.money.intro": "您今日的财务快照 — 您拥有的账户、每月支出、当前贷款,以及任何可出售资产 (如房屋、汽车)。",
+  "section.life.intro": "将您的人生分为不同阶段 (职业、半退休、全退休)。每个阶段都有月收入和盈余存放位置。",
 };
 
 const dictionaries: Record<Lang, Dict> = { en, ms, zh };
