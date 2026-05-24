@@ -165,6 +165,9 @@ header { position: relative; }
 }
 .phase-warning button:hover { background: #fef9c3; }
 
+.expense-total-row { border-top: 2px solid #d1d5db; background: #f9fafb; }
+.expense-total-row td { padding-top: 8px; }
+
 .locked-value {
   display: inline-block;
   min-width: 50px;

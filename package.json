@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "tsx src/lib/sim.smoke.ts",
+    "test": "tsx src/lib/sim.smoke.ts && tsx src/lib/sim.behavior.test.ts",
     "capture-snapshots": "tsx src/lib/capture-snapshots.ts",
     "lint": "eslint .",
     "preview": "vite preview"

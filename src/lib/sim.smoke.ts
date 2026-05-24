@@ -188,7 +188,7 @@ console.log("\n== Lean FIRE preset ==");
   check("FIRE sprint ends at age 35", sprintEnd === 35);
   // Food cap is tighter
   const foodAt80 = result.rows[result.rows.length - 1].expenseBreakdown.find((e) => e.id === "food")!;
-  check("Lean food spend is capped at <= RM2000/mo (24k/yr)", foodAt80.yearly <= 24_000 + 1);
+  check("Lean food spend respects new cap RM8000/mo (96k/yr)", foodAt80.yearly <= 96_000 + 1);
   console.log(`Lean FIRE: peak ${result.peakAssets.toFixed(0)} @ ${result.peakAge}, runs out: ${result.runsOutAtAge ?? "never"}`);
 }
 

@@ -530,6 +530,14 @@ export default function App() {
                   <td><button onClick={() => removeExpense(e.id)}>×</button></td>
                 </tr>
               ))}
+              <tr className="expense-total-row">
+                <td><b>Total (today)</b></td>
+                <td className="num"><b>{fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0))}/mo</b></td>
+                <td colSpan={3} className="hint">
+                  ≈ {fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0) * 12)}/yr.
+                  Some lines inflate; future totals will be higher (see Milestone snapshot).
+                </td>
+              </tr>
             </tbody>
           </table>
           <button onClick={addExpense}>+ Add expense</button>
