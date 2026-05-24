@@ -165,6 +165,20 @@ header { position: relative; }
 }
 .phase-warning button:hover { background: #fef9c3; }
 
+.locked-value {
+  display: inline-block;
+  min-width: 50px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+
 table input.input-error,
 input.input-error {
   border-color: #dc2626 !important;

@@ -404,6 +404,7 @@ function profileFreshGrad(): ProfileShape {
     startAge: 18,
     endAge: 80,
     accounts: [
+      { id: "cash", name: "Cash", balance: 1_000, rate: 0, drainOrder: 0, isCash: true },
       { id: "stk", name: "Stocks", balance: 0, rate: 0.04, drainOrder: 1 },
       { id: "asm", name: "ASM", balance: 2_000, rate: 0.05, drainOrder: 2 },
       { id: "epf", name: "EPF", balance: 5_000, rate: 0.06, drainOrder: 3 },
@@ -435,6 +436,7 @@ function profileYoungPro(): ProfileShape {
     startAge: 25,
     endAge: 80,
     accounts: [
+      { id: "cash", name: "Cash", balance: 1_000, rate: 0, drainOrder: 0, isCash: true },
       { id: "stk", name: "Stocks", balance: 5_000, rate: 0.04, drainOrder: 1 },
       { id: "asm", name: "ASM", balance: 10_000, rate: 0.05, drainOrder: 2 },
       { id: "epf", name: "EPF", balance: 30_000, rate: 0.06, drainOrder: 3 },
@@ -470,6 +472,7 @@ function profileMidCareer(): ProfileShape {
     startAge: 31,
     endAge: 80,
     accounts: [
+      { id: "cash", name: "Cash", balance: 1_000, rate: 0, drainOrder: 0, isCash: true },
       { id: "stk", name: "Stocks", balance: 75_000, rate: 0.04, drainOrder: 1 },
       { id: "asm", name: "ASM", balance: 244_000, rate: 0.05, drainOrder: 2 },
       { id: "epf", name: "EPF", balance: 200_000, rate: 0.06, drainOrder: 3 },
@@ -534,6 +537,7 @@ function profilePreRetire(): ProfileShape {
     startAge: 55,
     endAge: 90,
     accounts: [
+      { id: "cash", name: "Cash", balance: 1_000, rate: 0, drainOrder: 0, isCash: true },
       { id: "stk", name: "Stocks", balance: 200_000, rate: 0.04, drainOrder: 1 },
       { id: "asm", name: "ASM", balance: 400_000, rate: 0.05, drainOrder: 2 },
       { id: "epf", name: "EPF", balance: 800_000, rate: 0.06, drainOrder: 3 },

@@ -170,6 +170,35 @@ export default function App() {
       phases: s.phases.map((p) => (p.id === id ? { ...p, ...patch } : p)),
     }));
   }
+  // Update a phase's endAge AND cascade the change to the next phase's startAge,
+  // keeping all phases contiguous (next.start = this.end + 1).
+  function updatePhaseEndAge(id: string, newEnd: number) {
+    setInput((s) => {
+      const sortedIdx = [...s.phases].sort((a, b) => a.startAge - b.startAge);
+      const idxInSorted = sortedIdx.findIndex((p) => p.id === id);
+      if (idxInSorted < 0) return s;
+      // Compute new boundaries from the edited phase forward
+      const updates: Record<string, { startAge?: number; endAge?: number }> = {};
+      // Constrain: newEnd must be >= this phase's start age
+      const thisPhase = sortedIdx[idxInSorted];
+      const safeNewEnd = Math.max(thisPhase.startAge, newEnd);
+      updates[id] = { endAge: safeNewEnd };
+      let cursor = safeNewEnd + 1;
+      for (let i = idxInSorted + 1; i < sortedIdx.length; i++) {
+        const p = sortedIdx[i];
+        const duration = Math.max(0, p.endAge - p.startAge);
+        const isLast = i === sortedIdx.length - 1;
+        const newStart = cursor;
+        const computedEnd = isLast ? s.endAge : newStart + duration;
+        updates[p.id] = { startAge: newStart, endAge: Math.max(newStart, computedEnd) };
+        cursor = updates[p.id].endAge! + 1;
+      }
+      return {
+        ...s,
+        phases: s.phases.map((p) => (updates[p.id] ? { ...p, ...updates[p.id] } : p)),
+      };
+    });
+  }
 
   const [profileKey, setProfileKey] = useState<ProfileKey>("midCareer");
   const [strategyKey, setStrategyKey] = useState<StrategyKey>("aggressive");
@@ -258,6 +287,25 @@ export default function App() {
     }
     return { byId, banner: messages.join(" • ") };
   }, [input.phases, input.startAge, input.endAge]);
+
+  function updateHorizon(patch: { startAge?: number; endAge?: number }) {
+    setInput((s) => {
+      const startAge = patch.startAge ?? s.startAge;
+      const endAge = patch.endAge ?? s.endAge;
+      // Re-snap phases to fit the new horizon (preserve durations).
+      const sorted = [...s.phases].sort((a, b) => a.startAge - b.startAge);
+      let cursor = startAge;
+      const fixed = sorted.map((p, i) => {
+        const duration = Math.max(0, p.endAge - p.startAge);
+        const newStart = cursor;
+        const isLast = i === sorted.length - 1;
+        const newEnd = isLast ? endAge : Math.min(newStart + duration, endAge);
+        cursor = newEnd + 1;
+        return { ...p, startAge: newStart, endAge: Math.max(newStart, newEnd) };
+      });
+      return { ...s, startAge, endAge, phases: fixed };
+    });
+  }
 
   function snapPhasesContiguous() {
     if (input.phases.length === 0) return;
@@ -380,10 +428,10 @@ export default function App() {
         <div className="card">
           <h2>Time horizon</h2>
           <label>
-            Start age <input type="number" value={input.startAge} onChange={(e) => setInput((s) => ({ ...s, startAge: +e.target.value }))} />
+            Start age <input type="number" value={input.startAge} onChange={(e) => updateHorizon({ startAge: +e.target.value })} />
           </label>
           <label>
-            End age <input type="number" value={input.endAge} onChange={(e) => setInput((s) => ({ ...s, endAge: +e.target.value }))} />
+            End age <input type="number" value={input.endAge} onChange={(e) => updateHorizon({ endAge: +e.target.value })} />
           </label>
         </div>
         <div className="card">
@@ -541,9 +589,10 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {input.phases.map((p) => {
+              {input.phases.map((p, idx) => {
                 const expanded = expandedPhase === p.id;
                 const xferCount = p.transfers?.length ?? 0;
+                const isLast = idx === input.phases.length - 1;
                 return (
                   <Fragment key={p.id}>
                     <tr>
@@ -568,22 +617,31 @@ export default function App() {
                         )}
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          value={p.startAge}
-                          onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })}
-                          className={phaseIssues.byId[p.id]?.start ? "input-error" : ""}
-                          title={phaseIssues.byId[p.id]?.start || undefined}
-                        />
+                        <span
+                          className="locked-value"
+                          title={idx === 0 ? "Locked to plan start (edit in Settings)" : "Locked to previous phase end + 1"}
+                        >
+                          {p.startAge}
+                        </span>
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          value={p.endAge}
-                          onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })}
-                          className={phaseIssues.byId[p.id]?.end ? "input-error" : ""}
-                          title={phaseIssues.byId[p.id]?.end || undefined}
-                        />
+                        {isLast ? (
+                          <span
+                            className="locked-value"
+                            title="Locked to plan end (edit in Settings)"
+                          >
+                            {p.endAge}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={p.endAge}
+                            onChange={(e) => updatePhaseEndAge(p.id, +e.target.value)}
+                            min={p.startAge}
+                            className={phaseIssues.byId[p.id]?.end ? "input-error" : ""}
+                            title={phaseIssues.byId[p.id]?.end || undefined}
+                          />
+                        )}
                       </td>
                       <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
                       <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
