@@ -35,36 +35,37 @@ In repo settings → Pages → "Build and deployment" → set Source to **GitHub
 
 ## What this tool can model
 
-- Multiple investment accounts with different return rates (e.g. EPF, ASM, stocks, KWAP, bonds)
-- Account drain order (which bucket gets spent first)
+- Multiple investment accounts with different return rates and a configurable drain order (which bucket gets spent first)
 - Expenses broken into buckets with **per-line inflation** and **monthly caps** (e.g. food at 5% capped at RM7k, insurance at 3% capped at RM2k)
 - Liabilities with a fixed end-age (mortgage, car loan, education loan)
-- Life phases with three income modes: salary covers everything / salary covers personal only / no income
-- Top-ups at start of year (e.g. EPF self-contribution)
-- Inter-account transfers (e.g. ASM → EPF arbitrage)
+- Life phases with **explicit monthly income** and optional **income inflation** (annual raises)
+- **Surplus auto-savings**: when income exceeds expenses + liabilities, the surplus can flow into any account you pick (or be treated as consumed lifestyle)
+- Annual top-ups (e.g. EPF self-contribution) and inter-account transfers (e.g. ASM → EPF arbitrage)
 - Principal vs interest accounting — see when you actually start eating into the money you saved
-- Toggle the two modeling ambiguities that materially shift outcomes (see Modeling notes)
+- Two assumption toggles for the modeling ambiguities that materially shift outcomes (see Modeling notes)
+- XLSX export of the full year-by-year simulation
 
 ## What this tool does NOT model
 
 These are real-world factors that can break the projection. Plan around them manually:
 
 - **Country migration / currency change.** Moving to another country in retirement changes tax treatment, cost of living, and may require currency conversion of locked accounts (EPF can be withdrawn fully when emigrating). The sim assumes you stay in one currency/jurisdiction.
-- **Stochastic returns.** Returns are constant year-to-year. No Monte Carlo, no sequence-of-returns risk, no bear markets. A 4% average that swings -20% in year one looks very different from 4% straight-line.
-- **Tax.** No income tax, capital gains tax, withholding, or tax-advantaged account rules beyond what you encode in the return rate. EPF dividends are tax-free in Malaysia; brokerage isn't. Build that into the rate or expense lines yourself.
-- **Healthcare shocks.** Insurance premiums inflate at the rate you set, but the sim doesn't model a one-off RM200k hospital bill or long-term care.
-- **Major one-off events.** No support for "lump sum at age 55" (inheritance), "pay off mortgage at age 45" (large one-time outflow), "buy second property at 50", weddings, university fees for children, etc. Workaround: temporarily inflate a "Liability" or "Expense" for that single year.
-- **Variable / part-time income.** Income is binary per phase (covers all / covers personal / none). No "I earn RM3k/month freelance from 45-55."
-- **Rental / passive income.** No income streams. Workaround: model as a negative expense or extend the liability end-age to offset.
-- **Property appreciation / sale.** The house is a liability, not an asset. Selling or downsizing isn't modeled.
-- **Spouse / dependent finances.** Single-portfolio simulation. Two-income households need to aggregate manually.
-- **Account-specific withdrawal rules.** No EPF "Account 1/2/3" split, no minimum balance rules, no age-55 unlock. All accounts are fully liquid in the sim.
-- **Required Minimum Distributions (US), CPF quirks (Singapore), RRIF (Canada), etc.**
-- **Pension / annuity income** — fixed monthly payments starting at a specific age. Not yet supported.
-- **Compounding frequency.** Annual only. No monthly/quarterly compounding.
-- **Mid-year cashflow timing.** Top-ups and transfers happen at start of year; interest credited at end. Withdrawals are treated as a single annual lump.
+- **Stochastic returns / sequence-of-returns risk.** Returns are constant year-to-year. No Monte Carlo, no bear markets. A 4% average that swings -20% in year one looks very different from 4% straight-line.
+- **Tax.** No income tax, capital gains tax, withholding, or tax-advantaged account rules beyond what you encode in the return rate.
+- **Healthcare shocks.** Premiums inflate at the rate you set, but no one-off hospital bills or long-term care.
+- **Major one-off events.** No native support for "inheritance at 55", "settle mortgage at 45", "buy second property at 50", weddings, university fees. Workaround: temporarily inflate a Liability or Expense for that year.
+- **Income variation within a phase.** Income is flat per phase or grows at a fixed inflation rate. No mid-phase raises, bonuses, or sabbaticals — split into multiple phases instead.
+- **Rental / dividend / pension income.** Not first-class. Workaround: model as a phase with that monthly income, or as a negative expense.
+- **Property appreciation / sale / downsizing.** The house is a liability only.
+- **Spouse / dependent finances.** Single-portfolio simulation; combine manually.
+- **Account-specific rules.** No EPF Account 1/2/3 split, no age-55 unlock, no RM1.3M withdrawal threshold, no RMDs, no CPF quirks. All accounts are fully liquid.
+- **Top-up caps.** EPF self-contribution is capped at RM100k/yr by law — the sim doesn't enforce it; you can enter any amount.
+- **Annual compounding only.** No monthly/quarterly compounding.
+- **Mid-year cashflow timing.** Top-ups and transfers happen at start of year; interest credited at end; withdrawals are a single annual lump.
+- **Goal-seeking & sensitivity analysis.** No "when can I retire?" solver, no tornado chart of which input matters most, no Monte Carlo.
+- **Scenario comparison & sharing.** Single scenario at a time, not stored to URL or compared side-by-side.
 
-If you need any of the above, the sim's verdict should be treated as a *baseline* — your real plan needs a buffer.
+If you need any of the above, treat the sim's verdict as a *baseline* — your real plan needs a buffer.
 
 ## Modeling notes
 

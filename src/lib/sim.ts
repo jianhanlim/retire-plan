@@ -307,7 +307,7 @@ export function malaysiaPreset(): SimInput {
       endAge: 36,
       monthlyIncome: 10_000,
       incomeInflation: 0,
-      // surplus consumed (no target). Explicit top-ups handle savings.
+      surplusAccountId: "epf",
       topUps: [
         { accountId: "epf", amount: 50_000 },
         { accountId: "asm", amount: 10_000 },
@@ -320,6 +320,7 @@ export function malaysiaPreset(): SimInput {
       endAge: 41,
       monthlyIncome: 3_000,
       incomeInflation: 0,
+      surplusAccountId: "epf",
       transfers: [{ fromId: "asm", toId: "epf", amount: 50_000 }],
     },
     {

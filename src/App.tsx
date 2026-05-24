@@ -395,26 +395,32 @@ export default function App() {
               <li>Multiple accounts with different return rates &amp; drain order</li>
               <li>Expense buckets with per-line inflation &amp; monthly caps</li>
               <li>Liabilities with fixed end-age (mortgage, loans)</li>
-              <li>Life phases with income behavior</li>
-              <li>Top-ups &amp; inter-account transfers</li>
-              <li>Principal vs interest tracking</li>
+              <li>Life phases with monthly income &amp; optional income inflation (raises)</li>
+              <li>Surplus auto-savings: income above expenses can flow into any account</li>
+              <li>Annual top-ups (e.g. EPF self-contribution) &amp; inter-account transfers (arbitrage)</li>
+              <li>Principal vs interest tracking — see when you start eating into capital</li>
+              <li>Assumption toggles for the two ambiguous modeling choices</li>
+              <li>XLSX export of the full year-by-year simulation</li>
             </ul>
           </div>
           <div>
             <h3>✗ Does not handle</h3>
             <ul>
               <li>Migrating to another country in retirement (currency, tax, cost-of-living change)</li>
-              <li>Stochastic returns / market crashes (returns are constant)</li>
-              <li>Tax (income, capital gains, withholding)</li>
+              <li>Stochastic returns / market crashes / sequence-of-returns risk (returns are constant)</li>
+              <li>Tax (income tax, capital gains, withholding, tax-deferred accounts)</li>
               <li>One-off events: lump-sum inheritance, mortgage early settlement, weddings, kids' tuition</li>
-              <li>Variable / part-time income within a phase</li>
-              <li>Rental or passive income streams</li>
-              <li>Property appreciation, sale, downsizing</li>
+              <li>Income that varies <i>within</i> a phase (mid-phase raises, bonuses, sabbaticals) — phase income is flat or inflates at a fixed rate</li>
+              <li>Rental, dividend, or pension/annuity income streams (workaround: model as a phase with that income)</li>
+              <li>Property appreciation, sale, downsizing (house is a liability only)</li>
               <li>Spouse / dependent finances (single portfolio only)</li>
-              <li>Account-specific rules: EPF Acc 1/2/3, age-55 unlock, RMDs, CPF quirks</li>
-              <li>Pension / annuity income</li>
+              <li>Account-specific rules: EPF Acc 1/2/3 split, age-55 unlock, RM1.3M withdrawal threshold, RMDs, CPF quirks</li>
+              <li>Account access locks (all accounts are fully liquid in the sim)</li>
+              <li>Top-up caps (e.g. EPF self-contribution capped at RM100k/yr — you can enter any amount)</li>
               <li>Healthcare shocks beyond inflated premiums</li>
               <li>Monthly compounding (annual only)</li>
+              <li>Goal-seeking ("when can I retire?") and Monte Carlo sensitivity</li>
+              <li>Scenario comparison side-by-side and shareable URLs</li>
             </ul>
           </div>
         </div>
