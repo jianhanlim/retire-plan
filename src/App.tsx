@@ -480,25 +480,12 @@ export default function App() {
 
       <section className="how-it-works">
         <details>
-          <summary>How does this work?</summary>
+          <summary>{t("How does this work?")}</summary>
           <div>
-            <p>
-              <b>Each year:</b> your income covers as much of your expenses + liabilities as it can.
-              Whatever it doesn't cover comes out of your accounts (drained in <b>Drain order</b>).
-            </p>
-            <p>
-              <b>Leftover income (surplus):</b> deposited via cascade →
-              first into your <b>Save Surplus To</b> account (up to its <b>Max Top-up</b> cap),
-              overflow goes to the next-highest-rate account, finally to <b>Cash (0%)</b> if all caps are hit.
-            </p>
-            <p>
-              <b>Transfers:</b> move existing balance between accounts each year (e.g. ASM→EPF arbitrage).
-              Different from savings — this doesn't add new money.
-            </p>
-            <p>
-              <b>Privacy:</b> everything is computed in your browser. Share-link uses the URL hash fragment, which
-              browsers never send to servers. Saved scenarios live only in this browser's local storage.
-            </p>
+            <p>{t("hiw.eachYear")}</p>
+            <p>{t("hiw.surplus")}</p>
+            <p>{t("hiw.transfers")}</p>
+            <p>{t("hiw.privacy")}</p>
           </div>
         </details>
       </section>
@@ -523,7 +510,7 @@ export default function App() {
               checked={input.topUpEarnsSameYearInterest}
               onChange={(e) => setInput((s) => ({ ...s, topUpEarnsSameYearInterest: e.target.checked }))}
             />
-            Top-ups earn interest in the year they're deposited
+            {t("Top-ups earn interest in the year they're deposited")}
           </label>
           <label>
             <input
@@ -531,11 +518,9 @@ export default function App() {
               checked={input.liabilityEndInclusive}
               onChange={(e) => setInput((s) => ({ ...s, liabilityEndInclusive: e.target.checked }))}
             />
-            Pay liability through its end age inclusive
+            {t("Pay liability through its end age inclusive")}
           </label>
-          <p className="hint">
-            Both options together shift the "money runs out" age by several years. Bracket the range.
-          </p>
+          <p className="hint">{t("Both options together shift the \"money runs out\" age by several years. Bracket the range.")}</p>
         </div>
       </section>
       </details>
@@ -546,13 +531,13 @@ export default function App() {
         <div className={cardClass("accounts")}>
           <h2 onClick={() => toggleCard("accounts")} className="card-title">{t("Accounts")}</h2>
           <details className="col-help">
-            <summary>ⓘ What do these columns mean?</summary>
+            <summary>{t("ⓘ What do these columns mean?")}</summary>
             <dl>
-              <dt>Name</dt><dd>Label for the account (e.g. EPF, ASM, Stocks, Cash).</dd>
-              <dt>Balance</dt><dd>How much is in this account today.</dd>
-              <dt>Rate %</dt><dd>Annual return rate. EPF ≈ 6%, ASM ≈ 5%, stocks ≈ 4%, cash 0%.</dd>
-              <dt>Drain</dt><dd>Order this account is emptied when income falls short. Lower number = drained first. Cash (0) goes first so your highest-compounding account is preserved longest.</dd>
-              <dt>Max Top-up</dt><dd>Annual contribution cap (e.g. EPF self-contribution = RM100,000/yr by law). Leave blank for uncapped. Surplus that exceeds the cap overflows to the next-highest-rate account.</dd>
+              <dt>{t("Name")}</dt><dd>{t("help.accounts.name")}</dd>
+              <dt>{t("Balance")}</dt><dd>{t("help.accounts.balance")}</dd>
+              <dt>{t("Rate %")}</dt><dd>{t("help.accounts.rate")}</dd>
+              <dt>{t("Drain")}</dt><dd>{t("help.accounts.drain")}</dd>
+              <dt>{t("Max Top-up")}</dt><dd>{t("help.accounts.maxTopUp")}</dd>
             </dl>
           </details>
           <table>
@@ -590,29 +575,24 @@ export default function App() {
                       }
                     />
                   </td>
-                  <td className="row-actions"><button onClick={() => removeAccount(a.id)} aria-label="Remove account">× Remove</button></td>
+                  <td className="row-actions"><button onClick={() => removeAccount(a.id)} aria-label="Remove account">× {`${t("Remove")}`}</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button onClick={addAccount}>+ Add account</button>
-          <p className="hint">
-            <b>Drain order:</b> when income falls short, accounts are emptied in ascending Drain number —
-            <b> 0 first, then 1, 2, 3</b>. The preset drains <b>Cash (0%)</b> first, then Stocks (4%),
-            ASM (5%), and finally EPF (6%) — so your highest-compounding account is preserved longest.
-            This is the standard "lowest-return-first" withdrawal strategy.
-          </p>
+          <button onClick={addAccount}>{t("+ Add account")}</button>
+          <p className="hint">{t("drain.order.hint")}</p>
         </div>
 
         <div className={cardClass("expenses")}>
           <h2 onClick={() => toggleCard("expenses")} className="card-title">{t("Expenses (monthly)")}</h2>
           <details className="col-help">
-            <summary>ⓘ What do these columns mean?</summary>
+            <summary>{t("ⓘ What do these columns mean?")}</summary>
             <dl>
-              <dt>Name</dt><dd>Spending category (food, insurance, subscriptions, etc.).</dd>
-              <dt>Monthly</dt><dd>How much you spend per month at today's prices.</dd>
-              <dt>Infl %</dt><dd>Annual inflation rate for THIS line. Food typically 5%, services 3%, fixed costs 0% — finer than a single "general inflation" assumption.</dd>
-              <dt>Cap</dt><dd>Optional monthly ceiling after inflation. e.g. Food cap RM8,000/mo means it won't grow past that even with 5%/yr inflation. Leave blank for uncapped.</dd>
+              <dt>{t("Name")}</dt><dd>{t("help.expenses.name")}</dd>
+              <dt>{t("Monthly")}</dt><dd>{t("help.expenses.monthly")}</dd>
+              <dt>{t("Infl %")}</dt><dd>{t("help.expenses.infl")}</dd>
+              <dt>{t("Cap")}</dt><dd>{t("help.expenses.cap")}</dd>
             </dl>
           </details>
           <table>
@@ -637,32 +617,31 @@ export default function App() {
                   <td data-label="Monthly"><input type="number" value={e.monthly} onChange={(ev) => updateExpense(e.id, { monthly: +ev.target.value })} /></td>
                   <td data-label="Inflation %"><input type="number" step="0.1" value={(e.inflation * 100).toFixed(1)} onChange={(ev) => updateExpense(e.id, { inflation: +ev.target.value / 100 })} /></td>
                   <td data-label="Monthly cap"><input type="number" placeholder="—" value={e.monthlyCap ?? ""} onChange={(ev) => updateExpense(e.id, { monthlyCap: ev.target.value === "" ? undefined : +ev.target.value })} /></td>
-                  <td className="row-actions"><button onClick={() => removeExpense(e.id)} aria-label="Remove expense">× Remove</button></td>
+                  <td className="row-actions"><button onClick={() => removeExpense(e.id)} aria-label="Remove expense">× {`${t("Remove")}`}</button></td>
                 </tr>
               ))}
               <tr className="expense-total-row">
-                <td><b>Total (today)</b></td>
-                <td className="num"><b>{fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0))}/mo</b></td>
+                <td><b>{t("Total (today)")}</b></td>
+                <td className="num"><b>{fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0))}/{t("mo")}</b></td>
                 <td colSpan={3} className="hint">
-                  ≈ {fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0) * 12)}/yr.
-                  Some lines inflate; future totals will be higher (see Milestone snapshot).
+                  ≈ {fmtRM(input.expenses.reduce((s, e) => s + e.monthly, 0) * 12)}/{t("yr")}. {t("expense.total.note")}
                 </td>
               </tr>
             </tbody>
           </table>
-          <button onClick={addExpense}>+ Add expense</button>
+          <button onClick={addExpense}>{t("+ Add expense")}</button>
         </div>
 
         <div className={cardClass("liabilities")}>
           <h2 onClick={() => toggleCard("liabilities")} className="card-title">{t("Liabilities")}</h2>
           <details className="col-help">
-            <summary>ⓘ What do these columns mean?</summary>
+            <summary>{t("ⓘ What do these columns mean?")}</summary>
             <dl>
-              <dt>Name</dt><dd>What this debt is for (housing loan, car loan, etc.).</dd>
-              <dt>Monthly</dt><dd>Required payment per month at today's value.</dd>
-              <dt>Start Age</dt><dd>When payments begin. Leave blank to start at plan start age.</dd>
-              <dt>End Age</dt><dd>Last age you'll make a payment (inclusive by default — see Settings → Assumption toggles).</dd>
-              <dt>Infl %</dt><dd>Annual growth of the payment. Most fixed loans = 0%.</dd>
+              <dt>{t("Name")}</dt><dd>{t("help.liabilities.name")}</dd>
+              <dt>{t("Monthly")}</dt><dd>{t("help.liabilities.monthly")}</dd>
+              <dt>{t("Start Age")}</dt><dd>{t("help.liabilities.startAge")}</dd>
+              <dt>{t("End Age")}</dt><dd>{t("help.liabilities.endAge")}</dd>
+              <dt>{t("Infl %")}</dt><dd>{t("help.liabilities.infl")}</dd>
             </dl>
           </details>
           <table>
@@ -696,30 +675,26 @@ export default function App() {
                   </td>
                   <td data-label="End age"><input type="number" value={L.endAge} onChange={(e) => updateLiability(L.id, { endAge: +e.target.value })} /></td>
                   <td data-label="Inflation %"><input type="number" step="0.1" value={(L.inflation * 100).toFixed(1)} onChange={(e) => updateLiability(L.id, { inflation: +e.target.value / 100 })} /></td>
-                  <td className="row-actions"><button onClick={() => removeLiability(L.id)} aria-label="Remove liability">× Remove</button></td>
+                  <td className="row-actions"><button onClick={() => removeLiability(L.id)} aria-label="Remove liability">× {`${t("Remove")}`}</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button onClick={addLiability}>+ Add liability</button>
+          <button onClick={addLiability}>{t("+ Add liability")}</button>
         </div>
 
         <div className={cardClass("fixedAssets")}>
           <h2 onClick={() => toggleCard("fixedAssets")} className="card-title">{t("🏠 Fixed assets")}</h2>
-          <p className="hint" style={{ marginTop: 0 }}>
-            Things you own with value (house, car). Not counted in your portfolio until sold.
-            Optionally linked to a liability — selling pays off the loan and deposits the net to your
-            preferred surplus account.
-          </p>
+          <p className="hint" style={{ marginTop: 0 }}>{t("help.fixedAssets.lead")}</p>
           <details className="col-help">
-            <summary>ⓘ What do these columns mean?</summary>
+            <summary>{t("ⓘ What do these columns mean?")}</summary>
             <dl>
-              <dt>Name</dt><dd>Label (House, Car, Land).</dd>
-              <dt>Current Value</dt><dd>What it's worth today.</dd>
-              <dt>Apprec %</dt><dd>Annual appreciation rate (Malaysia property ≈ 2–4%/yr).</dd>
-              <dt>Linked Loan</dt><dd>If this asset has a loan against it, pick the Liability. When you sell, that loan is auto-paid off from the proceeds.</dd>
-              <dt>Sell Age</dt><dd>When you plan to sell. Leave blank for never.</dd>
-              <dt>Sell Price</dt><dd>Override the projected sale price. Leave blank to use the appreciated value at Sell Age.</dd>
+              <dt>{t("Name")}</dt><dd>{t("help.fixedAssets.name")}</dd>
+              <dt>{t("Current Value")}</dt><dd>{t("help.fixedAssets.currentValue")}</dd>
+              <dt>{t("Apprec %")}</dt><dd>{t("help.fixedAssets.apprec")}</dd>
+              <dt>{t("Linked Loan")}</dt><dd>{t("help.fixedAssets.linkedLoan")}</dd>
+              <dt>{t("Sell Age")}</dt><dd>{t("help.fixedAssets.sellAge")}</dd>
+              <dt>{t("Sell Price")}</dt><dd>{t("help.fixedAssets.sellPrice")}</dd>
             </dl>
           </details>
           <table>
@@ -772,12 +747,12 @@ export default function App() {
                       onChange={(e) => updateFixedAsset(fa.id, { sellPriceOverride: e.target.value === "" ? undefined : +e.target.value })}
                     />
                   </td>
-                  <td className="row-actions"><button onClick={() => removeFixedAsset(fa.id)} aria-label="Remove asset">× Remove</button></td>
+                  <td className="row-actions"><button onClick={() => removeFixedAsset(fa.id)} aria-label="Remove asset">× {`${t("Remove")}`}</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button onClick={addFixedAsset}>+ Add fixed asset</button>
+          <button onClick={addFixedAsset}>{t("+ Add fixed asset")}</button>
         </div>
       </section>
       </details>
@@ -788,24 +763,22 @@ export default function App() {
         <div className="card editable-table phases-card">
           <h2>{t("Phases")}</h2>
           <details className="col-help">
-            <summary>ⓘ What do these columns mean?</summary>
+            <summary>{t("ⓘ What do these columns mean?")}</summary>
             <dl>
-              <dt>Name</dt><dd>Label for this life stage (Career, Semi-Retirement, Retirement, etc.).</dd>
-              <dt>Start</dt><dd>First age in this phase. Auto-locks to previous phase end + 1 (or to plan start for the first phase).</dd>
-              <dt>End</dt><dd>Last age in this phase. Auto-locks to plan end for the last phase.</dd>
-              <dt>Monthly Income</dt><dd>Your take-home pay during this phase. Set 0 for retirement / no income.</dd>
-              <dt>Income Infl %</dt><dd>Annual raise rate within this phase. 0 = flat salary.</dd>
-              <dt>Save Surplus To</dt><dd>Where leftover income (income − expenses − liabilities) is deposited. Excess beyond that account's cap cascades to the next-highest-rate account. Pick "— consumed —" if you'd rather model lifestyle inflation eating all surplus.</dd>
+              <dt>{t("Name")}</dt><dd>{t("help.phases.name")}</dd>
+              <dt>{t("Start")}</dt><dd>{t("help.phases.start")}</dd>
+              <dt>{t("End")}</dt><dd>{t("help.phases.end")}</dd>
+              <dt>{t("Monthly Income")}</dt><dd>{t("help.phases.monthlyIncome")}</dd>
+              <dt>{t("Income Infl %")}</dt><dd>{t("help.phases.incomeInfl")}</dd>
+              <dt>{t("Save Surplus To")}</dt><dd>{t("help.phases.surplus")}</dd>
             </dl>
-            <p className="col-help-extra">
-              <b>Transfers</b> (toggle the ▸ on a row) move money <i>between</i> your accounts each year — e.g. ASM → EPF to arbitrage 5% to 6%. This is different from surplus savings, which is new income coming in.
-            </p>
+            <p className="col-help-extra">{t("help.phases.transfers")}</p>
           </details>
           {phaseIssues.banner && (
             <div className="phase-warning">
               <span>⚠ {phaseIssues.banner}</span>
-              <button onClick={snapPhasesContiguous} title="Auto-fix: snap phases contiguous">
-                Snap to contiguous
+              <button onClick={snapPhasesContiguous} title={t("Snap to contiguous")}>
+                {t("Snap to contiguous")}
               </button>
             </div>
           )}
@@ -900,24 +873,21 @@ export default function App() {
                         <td colSpan={6}>
                           <div className="transfers-editor">
                             <div className="te-header">
-                              <b>Annual transfers</b>
-                              <span className="hint" style={{ marginLeft: 8 }}>
-                                Move existing balance between accounts each year (e.g. ASM→EPF arbitrage).
-                                Different from surplus cascade (that handles new savings).
-                              </span>
+                              <b>{t("Annual transfers")}</b>
+                              <span className="hint" style={{ marginLeft: 8 }}>{t("Move existing balance between accounts each year.")}</span>
                             </div>
-                            {(p.transfers ?? []).map((t, i) => (
+                            {(p.transfers ?? []).map((tr, i) => (
                               <div key={i} className="te-row">
-                                <span>Move</span>
+                                <span>{t("Move")}</span>
                                 <input
                                   type="number"
-                                  value={t.amount}
+                                  value={tr.amount}
                                   onChange={(e) => updateTransfer(p.id, i, { amount: +e.target.value })}
                                   className="te-amount"
                                 />
-                                <span>from</span>
+                                <span>{t("from")}</span>
                                 <select
-                                  value={t.fromId}
+                                  value={tr.fromId}
                                   onChange={(e) => updateTransfer(p.id, i, { fromId: e.target.value })}
                                 >
                                   {input.accounts.map((a) => (
@@ -926,21 +896,21 @@ export default function App() {
                                 </select>
                                 <span>→</span>
                                 <select
-                                  value={t.toId}
+                                  value={tr.toId}
                                   onChange={(e) => updateTransfer(p.id, i, { toId: e.target.value })}
                                 >
                                   {input.accounts.map((a) => (
                                     <option key={a.id} value={a.id}>{a.name}</option>
                                   ))}
                                 </select>
-                                <button onClick={() => removeTransfer(p.id, i)} title="Remove">×</button>
+                                <button onClick={() => removeTransfer(p.id, i)} title={t("Remove")}>×</button>
                               </div>
                             ))}
                             <button
                               onClick={() => addTransfer(p.id)}
                               disabled={input.accounts.length < 2}
                             >
-                              + Add transfer
+                              {t("+ Add transfer")}
                             </button>
                           </div>
                         </td>
@@ -971,21 +941,18 @@ export default function App() {
       </details>
 
       <details className="saved-details">
-        <summary>💾 Saved scenarios ({savedNames.length})</summary>
+        <summary>💾 {t("Saved scenarios")} ({savedNames.length})</summary>
         <div>
           {savedNames.length === 0 ? (
-            <p className="hint">
-              No saved scenarios yet. Use <b>💾 Save</b> in the header to store the current setup.
-              Scenarios live in your browser only — they're never uploaded.
-            </p>
+            <p className="hint">{t("saved.empty")}</p>
           ) : (
             <ul className="saved-list">
               {savedNames.map((n) => (
                 <li key={n}>
                   <span>{n}</span>
                   <span>
-                    <button onClick={() => handleLoad(n)}>Load</button>
-                    <button onClick={() => handleDelete(n)}>Delete</button>
+                    <button onClick={() => handleLoad(n)}>{t("Load")}</button>
+                    <button onClick={() => handleDelete(n)}>{t("Delete")}</button>
                   </span>
                 </li>
               ))}
@@ -1059,34 +1026,34 @@ export default function App() {
           </button>
         </div>
         <details className="col-help">
-          <summary>ⓘ What do these columns mean?</summary>
+          <summary>{t("ⓘ What do these columns mean?")}</summary>
           <dl>
-            <dt>Age</dt><dd>Your age in that year.</dd>
-            <dt>Phase</dt><dd>Which life phase you're in that year (Career, Semi-Retirement, etc.).</dd>
-            <dt>Total</dt><dd>Sum of all liquid account balances at year-end.</dd>
-            <dt>[Account columns]</dt><dd>Year-end balance in each of your accounts.</dd>
-            <dt>Income (yr)</dt><dd>Annual take-home income from the phase you're in.</dd>
-            <dt>Living costs (yr)</dt><dd>Sum of all personal expenses (food, insurance, etc.) for that year. Excludes liabilities.</dd>
-            <dt>Liability (yr)</dt><dd>Loan / mortgage payments for that year.</dd>
-            <dt>Total Spend (yr)</dt><dd>Living costs + Liability.</dd>
-            <dt>Drained (yr)</dt><dd>What your portfolio actually paid out (= Total Spend − Income). ⚠ icon means the portfolio couldn't cover the year.</dd>
+            <dt>{t("Age")}</dt><dd>{t("help.snapshot.age")}</dd>
+            <dt>{t("Phase")}</dt><dd>{t("help.snapshot.phase")}</dd>
+            <dt>{t("Total")}</dt><dd>{t("help.snapshot.total")}</dd>
+            <dt>{t("help.snapshot.accountCols.label")}</dt><dd>{t("help.snapshot.accountCols")}</dd>
+            <dt>{t("Income (yr)")}</dt><dd>{t("help.snapshot.income")}</dd>
+            <dt>{t("Living costs (yr)")}</dt><dd>{t("help.snapshot.livingCosts")}</dd>
+            <dt>{t("Liability (yr)")}</dt><dd>{t("help.snapshot.liability")}</dd>
+            <dt>{t("Total Spend (yr)")}</dt><dd>{t("help.snapshot.totalSpend")}</dd>
+            <dt>{t("Drained (yr)")}</dt><dd>{t("help.snapshot.drained")}</dd>
           </dl>
         </details>
         <div className="scroll-x">
           <table className="snapshot">
             <thead>
               <tr>
-                <th>Age</th>
-                <th>Phase</th>
-                <th className="num">Total</th>
+                <th>{t("Age")}</th>
+                <th>{t("Phase")}</th>
+                <th className="num">{t("Total")}</th>
                 {input.accounts.map((a) => (
                   <th key={a.id} className="num">{a.name}</th>
                 ))}
-                <th className="num">Income (yr)</th>
-                <th className="num" title="Sum of your personal expenses (food, insurance, etc.) for that year — excludes liabilities">Living costs (yr)</th>
-                <th className="num" title="Liability payments (mortgage, loans) for that year">Liability (yr)</th>
-                <th className="num" title="Living costs + Liability">Total Spend (yr)</th>
-                <th className="num" title="What the portfolio actually paid out (= Total Spend − Income, or less if portfolio empties)">Drained (yr)</th>
+                <th className="num">{t("Income (yr)")}</th>
+                <th className="num">{t("Living costs (yr)")}</th>
+                <th className="num">{t("Liability (yr)")}</th>
+                <th className="num">{t("Total Spend (yr)")}</th>
+                <th className="num">{t("Drained (yr)")}</th>
               </tr>
             </thead>
             <tbody>
@@ -1123,10 +1090,10 @@ export default function App() {
       </section>
 
       <section className="card scope">
-        <h2>What this tool does &amp; doesn't model</h2>
+        <h2>{t("What this tool does & doesn't model")}</h2>
         <div className="scope-grid">
           <div>
-            <h3>✓ Handles</h3>
+            <h3>{t("✓ Handles")}</h3>
             <ul>
               <li><b>Profile × Strategy</b>: 5 life profiles (Fresh Graduate → Pre-Retirement) × 3 saving strategies = 15 ready-made starting points</li>
               <li>Multiple <b>accounts</b> with different return rates, drain order, and annual top-up caps (e.g. EPF capped at RM100k/yr)</li>
@@ -1145,7 +1112,7 @@ export default function App() {
             </ul>
           </div>
           <div>
-            <h3>✗ Does not handle</h3>
+            <h3>{t("✗ Does not handle")}</h3>
             <ul>
               <li><b>Migrating to another country</b> in retirement (currency, tax, cost-of-living change)</li>
               <li><b>Stochastic returns</b> / market crashes / sequence-of-returns risk — returns are constant year-over-year, no Monte Carlo</li>
@@ -1163,9 +1130,7 @@ export default function App() {
             </ul>
           </div>
         </div>
-        <p className="hint">
-          Treat the verdict as a baseline. Add a buffer for what isn't modeled.
-        </p>
+        <p className="hint">{t("Treat the verdict as a baseline. Add a buffer for what isn't modeled.")}</p>
       </section>
 
       <footer>
@@ -1173,8 +1138,8 @@ export default function App() {
           {t("Built by")} <b>{t("a PhD")}</b> · AI / Data Science
         </p>
         <p>
-          Open source on <a href="https://github.com/jianhanlim/retire-plan">GitHub</a> ·
-          All calculations are local; nothing is sent to a server.
+          {t("Open source on")} <a href="https://github.com/jianhanlim/retire-plan">GitHub</a> ·
+          {" "}{t("All calculations are local; nothing is sent to a server.")}
         </p>
       </footer>
     </div>

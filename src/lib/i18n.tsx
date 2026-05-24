@@ -12,7 +12,86 @@ export const LANG_NAMES: Record<Lang, string> = {
 
 type Dict = Record<string, string>;
 
-const en: Dict = {}; // EN is the identity — key === value
+const en: Dict = {
+  // Column-help blocks (keys for nested copy)
+  "help.accounts.name": "Label for the account (e.g. EPF, ASM, Stocks, Cash).",
+  "help.accounts.balance": "How much is in this account today.",
+  "help.accounts.rate": "Annual return rate. EPF ≈ 6%, ASM ≈ 5%, stocks ≈ 4%, cash 0%.",
+  "help.accounts.drain": "Order this account is emptied when income falls short. Lower number = drained first. Cash (0) goes first so your highest-compounding account is preserved longest.",
+  "help.accounts.maxTopUp": "Annual contribution cap (e.g. EPF self-contribution = RM100,000/yr by law). Leave blank for uncapped. Surplus that exceeds the cap overflows to the next-highest-rate account.",
+
+  "help.expenses.name": "Spending category (food, insurance, subscriptions, etc.).",
+  "help.expenses.monthly": "How much you spend per month at today's prices.",
+  "help.expenses.infl": "Annual inflation rate for THIS line. Food typically 5%, services 3%, fixed costs 0% — finer than a single \"general inflation\" assumption.",
+  "help.expenses.cap": "Optional monthly ceiling after inflation. e.g. Food cap RM8,000/mo means it won't grow past that even with 5%/yr inflation. Leave blank for uncapped.",
+
+  "help.liabilities.name": "What this debt is for (housing loan, car loan, etc.).",
+  "help.liabilities.monthly": "Required payment per month at today's value.",
+  "help.liabilities.startAge": "When payments begin. Leave blank to start at plan start age.",
+  "help.liabilities.endAge": "Last age you'll make a payment (inclusive by default — see Settings → Assumption toggles).",
+  "help.liabilities.infl": "Annual growth of the payment. Most fixed loans = 0%.",
+
+  "help.fixedAssets.lead": "Things you own with value (house, car). Not counted in your portfolio until sold. Optionally linked to a liability — selling pays off the loan and deposits the net to your preferred surplus account.",
+  "help.fixedAssets.name": "Label (House, Car, Land).",
+  "help.fixedAssets.currentValue": "What it's worth today.",
+  "help.fixedAssets.apprec": "Annual appreciation rate (Malaysia property ≈ 2–4%/yr).",
+  "help.fixedAssets.linkedLoan": "If this asset has a loan against it, pick the Liability. When you sell, that loan is auto-paid off from the proceeds.",
+  "help.fixedAssets.sellAge": "When you plan to sell. Leave blank for never.",
+  "help.fixedAssets.sellPrice": "Override the projected sale price. Leave blank to use the appreciated value at Sell Age.",
+
+  "help.phases.name": "Label for this life stage (Career, Semi-Retirement, Retirement, etc.).",
+  "help.phases.start": "First age in this phase. Auto-locks to previous phase end + 1 (or to plan start for the first phase).",
+  "help.phases.end": "Last age in this phase. Auto-locks to plan end for the last phase.",
+  "help.phases.monthlyIncome": "Your take-home pay during this phase. Set 0 for retirement / no income.",
+  "help.phases.incomeInfl": "Annual raise rate within this phase. 0 = flat salary.",
+  "help.phases.surplus": "Where leftover income (income − expenses − liabilities) is deposited. Excess beyond that account's cap cascades to the next-highest-rate account. Pick \"— consumed —\" if you'd rather model lifestyle inflation eating all surplus.",
+  "help.phases.transfers": "Transfers (toggle the ▸ on a row) move money between your accounts each year — e.g. ASM → EPF to arbitrage 5% to 6%. This is different from surplus savings, which is new income coming in.",
+
+  "help.snapshot.age": "Your age in that year.",
+  "help.snapshot.phase": "Which life phase you're in that year (Career, Semi-Retirement, etc.).",
+  "help.snapshot.total": "Sum of all liquid account balances at year-end.",
+  "help.snapshot.accountCols.label": "[Account columns]",
+  "help.snapshot.accountCols": "Year-end balance in each of your accounts.",
+  "help.snapshot.income": "Annual take-home income from the phase you're in.",
+  "help.snapshot.livingCosts": "Sum of all personal expenses (food, insurance, etc.) for that year. Excludes liabilities.",
+  "help.snapshot.liability": "Loan / mortgage payments for that year.",
+  "help.snapshot.totalSpend": "Living costs + Liability.",
+  "help.snapshot.drained": "What your portfolio actually paid out (= Total Spend − Income). ⚠ icon means the portfolio couldn't cover the year.",
+
+  // How does this work
+  "hiw.eachYear": "Each year: your income covers as much of your expenses + liabilities as it can. Whatever it doesn't cover comes out of your accounts (drained in Drain order).",
+  "hiw.surplus": "Leftover income (surplus): deposited via cascade — first into your Save Surplus To account (up to its Max Top-up cap), overflow goes to the next-highest-rate account, finally to Cash (0%) if all caps are hit.",
+  "hiw.transfers": "Transfers: move existing balance between accounts each year (e.g. ASM→EPF arbitrage). Different from savings — this doesn't add new money.",
+  "hiw.privacy": "Privacy: everything is computed in your browser. Share-link uses the URL hash fragment, which browsers never send to servers. Saved scenarios live only in this browser's local storage.",
+
+  // Saved scenarios empty state
+  "saved.empty": "No saved scenarios yet. Use 💾 Save in the header to store the current setup. Scenarios live in your browser only — they're never uploaded.",
+
+  // Drain order hint
+  "drain.order.hint": "Drain order: when income falls short, accounts are emptied in ascending Drain number — 0 first, then 1, 2, 3. The preset drains Cash (0%) first, then Stocks (4%), ASM (5%), and finally EPF (6%) — so your highest-compounding account is preserved longest. This is the standard \"lowest-return-first\" withdrawal strategy.",
+
+  // Expense total note
+  "expense.total.note": "Some lines inflate; future totals will be higher (see Milestone snapshot).",
+  "mo": "mo",
+  "yr": "yr",
+
+  // Transfers editor
+  "Annual transfers": "Annual transfers",
+  "Move existing balance between accounts each year.": "Move existing balance between accounts each year (e.g. ASM→EPF arbitrage). Different from surplus cascade.",
+  "Move": "Move",
+  "from": "from",
+  "+ Add transfer": "+ Add transfer",
+  "Remove": "Remove",
+
+  // Add buttons (also default if MS/ZH miss)
+  "+ Add account": "+ Add account",
+  "+ Add expense": "+ Add expense",
+  "+ Add liability": "+ Add liability",
+  "+ Add fixed asset": "+ Add fixed asset",
+
+  // Phase warning
+  "Snap to contiguous": "Snap to contiguous",
+};
 
 const ms: Dict = {
   // Header
@@ -197,6 +276,78 @@ const ms: Dict = {
   "Open source on": "Sumber terbuka di",
   "All calculations are local; nothing is sent to a server.":
     "Semua pengiraan adalah tempatan; tiada apa dihantar ke pelayan.",
+
+  // Column-help blocks
+  "help.accounts.name": "Label untuk akaun (cth. KWSP, ASM, Saham, Tunai).",
+  "help.accounts.balance": "Jumlah dalam akaun ini hari ini.",
+  "help.accounts.rate": "Kadar pulangan tahunan. KWSP ≈ 6%, ASM ≈ 5%, saham ≈ 4%, tunai 0%.",
+  "help.accounts.drain": "Susunan akaun dikosongkan apabila pendapatan tidak mencukupi. Nombor lebih kecil = dikeluarkan dahulu. Tunai (0) keluar dahulu supaya akaun dengan pulangan tertinggi disimpan paling lama.",
+  "help.accounts.maxTopUp": "Had sumbangan tahunan (cth. sumbangan KWSP sendiri = RM100,000/tahun). Kosongkan untuk tiada had. Lebihan yang melebihi had akan dialihkan ke akaun kadar pulangan tertinggi seterusnya.",
+
+  "help.expenses.name": "Kategori perbelanjaan (makanan, insurans, langganan, dll.).",
+  "help.expenses.monthly": "Berapa banyak anda belanja setiap bulan pada harga hari ini.",
+  "help.expenses.infl": "Kadar inflasi tahunan untuk baris INI. Makanan biasanya 5%, perkhidmatan 3%, kos tetap 0% — lebih tepat daripada satu andaian inflasi am.",
+  "help.expenses.cap": "Had bulanan pilihan selepas inflasi. cth. Had makanan RM8,000/bulan bermakna ia tidak akan melebihi itu walaupun dengan inflasi 5%/tahun. Kosongkan untuk tiada had.",
+
+  "help.liabilities.name": "Untuk apa hutang ini (pinjaman rumah, pinjaman kereta, dll.).",
+  "help.liabilities.monthly": "Bayaran perlu setiap bulan pada nilai hari ini.",
+  "help.liabilities.startAge": "Bila pembayaran bermula. Kosongkan untuk mula pada umur permulaan pelan.",
+  "help.liabilities.endAge": "Umur terakhir anda buat pembayaran (termasuk secara lalai — lihat Tetapan → Andaian).",
+  "help.liabilities.infl": "Pertumbuhan tahunan pembayaran. Kebanyakan pinjaman tetap = 0%.",
+
+  "help.fixedAssets.lead": "Barang yang anda miliki yang bernilai (rumah, kereta). Tidak dikira dalam portfolio anda sehingga dijual. Boleh dipautkan dengan liabiliti — menjual akan membayar pinjaman dan mendepositkan baki ke akaun lebihan pilihan anda.",
+  "help.fixedAssets.name": "Label (Rumah, Kereta, Tanah).",
+  "help.fixedAssets.currentValue": "Nilainya hari ini.",
+  "help.fixedAssets.apprec": "Kadar penghargaan tahunan (hartanah Malaysia ≈ 2–4%/tahun).",
+  "help.fixedAssets.linkedLoan": "Jika aset ini ada pinjaman, pilih Liabiliti. Apabila anda jual, pinjaman itu akan dibayar automatik dari hasil jualan.",
+  "help.fixedAssets.sellAge": "Bila anda merancang untuk jual. Kosongkan jika tidak akan dijual.",
+  "help.fixedAssets.sellPrice": "Tindih ramalan harga jualan. Kosongkan untuk guna nilai dihargai pada Umur Jual.",
+
+  "help.phases.name": "Label untuk fasa hidup ini (Kerjaya, Separa-Persaraan, Persaraan, dll.).",
+  "help.phases.start": "Umur pertama dalam fasa ini. Auto-kunci kepada akhir fasa sebelumnya + 1 (atau mula pelan untuk fasa pertama).",
+  "help.phases.end": "Umur terakhir dalam fasa ini. Auto-kunci kepada akhir pelan untuk fasa terakhir.",
+  "help.phases.monthlyIncome": "Gaji bersih semasa fasa ini. Tetapkan 0 untuk persaraan / tiada pendapatan.",
+  "help.phases.incomeInfl": "Kadar kenaikan tahunan dalam fasa ini. 0 = gaji rata.",
+  "help.phases.surplus": "Di mana lebihan pendapatan (pendapatan − perbelanjaan − liabiliti) didepositkan. Lebihan yang melebihi had akaun akan dialihkan ke akaun kadar pulangan tertinggi seterusnya. Pilih \"— dihabiskan —\" jika anda ingin model inflasi gaya hidup yang menghabiskan semua lebihan.",
+  "help.phases.transfers": "Pemindahan (klik ▸ pada baris) mengalihkan wang antara akaun anda setiap tahun — cth. ASM → KWSP untuk arbitraj 5% kepada 6%. Ini berbeza daripada simpanan lebihan, iaitu pendapatan baru.",
+
+  "help.snapshot.age": "Umur anda pada tahun itu.",
+  "help.snapshot.phase": "Fasa hidup yang anda berada pada tahun itu.",
+  "help.snapshot.total": "Jumlah baki semua akaun cair pada akhir tahun.",
+  "help.snapshot.accountCols.label": "[Lajur akaun]",
+  "help.snapshot.accountCols": "Baki akhir tahun dalam setiap akaun anda.",
+  "help.snapshot.income": "Pendapatan tahunan bersih dari fasa anda.",
+  "help.snapshot.livingCosts": "Jumlah semua perbelanjaan peribadi (makanan, insurans, dll.) untuk tahun itu. Tidak termasuk liabiliti.",
+  "help.snapshot.liability": "Bayaran pinjaman / gadai janji untuk tahun itu.",
+  "help.snapshot.totalSpend": "Kos sara hidup + Liabiliti.",
+  "help.snapshot.drained": "Apa yang portfolio anda sebenarnya bayar (= Jumlah Belanja − Pendapatan). Ikon ⚠ bermakna portfolio tidak dapat menampung tahun itu.",
+
+  // How does this work
+  "hiw.eachYear": "Setiap tahun: pendapatan anda menampung sebanyak mungkin perbelanjaan + liabiliti. Apa yang tidak ditampung diambil dari akaun (dikeluarkan mengikut Susunan Pengeluaran).",
+  "hiw.surplus": "Lebihan pendapatan: didepositkan melalui lapisan — pertama ke akaun Simpan Lebihan ke (sehingga Had Tambahan), lebihan pergi ke akaun kadar pulangan tertinggi seterusnya, akhirnya ke Tunai (0%) jika semua had dikenakan.",
+  "hiw.transfers": "Pemindahan: alihkan baki sedia ada antara akaun setiap tahun (cth. arbitraj ASM→KWSP). Berbeza daripada simpanan — ini tidak menambah wang baru.",
+  "hiw.privacy": "Privasi: semua dikira dalam pelayar anda. Pautan-kongsi menggunakan serpihan hash URL, yang pelayar tidak pernah hantar ke pelayan. Senario disimpan hanya wujud dalam pelayar tempatan ini.",
+
+  // Saved scenarios empty state
+  "saved.empty": "Belum ada senario disimpan. Guna 💾 Simpan di pengepala untuk menyimpan persediaan semasa. Senario hanya wujud dalam pelayar anda — tidak pernah dimuat naik.",
+
+  // Drain hint
+  "drain.order.hint": "Susunan Pengeluaran: apabila pendapatan kurang, akaun dikosongkan mengikut nombor Pengeluaran menaik — 0 dahulu, kemudian 1, 2, 3. Preset mengeluarkan Tunai (0%) dahulu, kemudian Saham (4%), ASM (5%), dan akhirnya KWSP (6%) — supaya akaun dengan kompaun tertinggi disimpan paling lama. Ini adalah strategi pengeluaran \"pulangan-terendah-dahulu\" standard.",
+
+  "expense.total.note": "Sesetengah baris ada inflasi; jumlah masa depan akan lebih tinggi (lihat Petikan Penanda Aras).",
+  "mo": "bln",
+  "yr": "thn",
+
+  // Transfers editor
+  "Annual transfers": "Pemindahan tahunan",
+  "Move existing balance between accounts each year.": "Alihkan baki sedia ada antara akaun setiap tahun (cth. arbitraj ASM→KWSP). Berbeza daripada lapisan lebihan.",
+  "Move": "Alih",
+  "from": "dari",
+  "+ Add transfer": "+ Tambah pemindahan",
+  "Remove": "Buang",
+  "Snap to contiguous": "Selaraskan",
+
+  // Add buttons
 };
 
 const zh: Dict = {
@@ -382,6 +533,73 @@ const zh: Dict = {
   "Open source on": "开源于",
   "All calculations are local; nothing is sent to a server.":
     "所有计算都在本地进行;不会发送任何数据至服务器。",
+
+  // Column-help blocks
+  "help.accounts.name": "账户的标签 (例如 EPF、ASM、股票、现金)。",
+  "help.accounts.balance": "今天此账户中的金额。",
+  "help.accounts.rate": "年回报率。EPF ≈ 6%、ASM ≈ 5%、股票 ≈ 4%、现金 0%。",
+  "help.accounts.drain": "当收入不足时,此账户被清空的顺序。数字越小 = 越先被提取。现金 (0) 最先,以便保留最高复利账户最长时间。",
+  "help.accounts.maxTopUp": "年缴款上限 (例如 EPF 自付额 = 每年 RM100,000,法定)。留空表示无上限。超过上限的盈余将级联至下一个最高利率账户。",
+
+  "help.expenses.name": "支出类别 (食物、保险、订阅等)。",
+  "help.expenses.monthly": "您每月按今日价格的支出金额。",
+  "help.expenses.infl": "此项的年通胀率。食物通常 5%、服务 3%、固定成本 0% — 比单一\"一般通胀\"假设更精细。",
+  "help.expenses.cap": "通胀后的可选月度上限。例如食物上限 RM8,000/月表示即使有 5%/年通胀也不会超过此值。留空表示无上限。",
+
+  "help.liabilities.name": "此债务用途 (房贷、车贷等)。",
+  "help.liabilities.monthly": "今日价值的每月必需付款。",
+  "help.liabilities.startAge": "付款开始的年龄。留空则从计划起始年龄开始。",
+  "help.liabilities.endAge": "您最后一次付款的年龄 (默认包含 — 参见 设置 → 假设开关)。",
+  "help.liabilities.infl": "付款的年增长率。多数固定贷款 = 0%。",
+
+  "help.fixedAssets.lead": "您拥有的有价值物品 (房屋、汽车)。在出售之前不计入您的投资组合。可选择关联负债 — 出售时偿还贷款并将净额存入您的首选盈余账户。",
+  "help.fixedAssets.name": "标签 (房屋、汽车、土地)。",
+  "help.fixedAssets.currentValue": "今日的价值。",
+  "help.fixedAssets.apprec": "年增值率 (马来西亚房产 ≈ 2–4%/年)。",
+  "help.fixedAssets.linkedLoan": "如果此资产有相关贷款,选择该负债。出售时,贷款将自动从所得款项中偿还。",
+  "help.fixedAssets.sellAge": "您计划出售的年龄。留空则永不出售。",
+  "help.fixedAssets.sellPrice": "覆盖预计售价。留空使用出售年龄时的增值价值。",
+
+  "help.phases.name": "此人生阶段的标签 (职业、半退休、退休等)。",
+  "help.phases.start": "此阶段的第一个年龄。自动锁定为上一阶段结束 + 1 (或第一阶段为计划起始)。",
+  "help.phases.end": "此阶段的最后一个年龄。最后阶段自动锁定为计划结束。",
+  "help.phases.monthlyIncome": "此阶段的实领工资。设为 0 表示退休 / 无收入。",
+  "help.phases.incomeInfl": "此阶段内的年加薪率。0 = 工资不变。",
+  "help.phases.surplus": "剩余收入 (收入 − 支出 − 负债) 的存放位置。超出该账户上限的部分将级联到下一个最高利率账户。如果您希望模拟生活方式通胀吞噬所有盈余,请选择\"— 全数消费 —\"。",
+  "help.phases.transfers": "转账 (点击行上的 ▸) 每年在账户之间转移资金 — 例如 ASM → EPF 以套利 5% 至 6%。这与盈余储蓄不同,后者是新收入。",
+
+  "help.snapshot.age": "您在该年的年龄。",
+  "help.snapshot.phase": "您该年所处的人生阶段。",
+  "help.snapshot.total": "年终所有流动账户余额之和。",
+  "help.snapshot.accountCols.label": "[账户列]",
+  "help.snapshot.accountCols": "您每个账户的年终余额。",
+  "help.snapshot.income": "您所在阶段的年度实领收入。",
+  "help.snapshot.livingCosts": "该年的所有个人支出 (食物、保险等) 之和。不包括负债。",
+  "help.snapshot.liability": "该年的贷款/抵押付款。",
+  "help.snapshot.totalSpend": "生活开支 + 负债。",
+  "help.snapshot.drained": "您的投资组合实际支付的金额 (= 总支出 − 收入)。⚠ 图标表示投资组合无法覆盖该年。",
+
+  "hiw.eachYear": "每年:您的收入尽可能覆盖支出 + 负债。未覆盖的部分从您的账户中提取 (按提取顺序)。",
+  "hiw.surplus": "剩余收入 (盈余):通过级联存入 — 首先存入您的\"盈余存入\"账户 (直至最大充值上限),溢出部分进入下一个最高利率账户,所有上限达到时最终进入现金 (0%)。",
+  "hiw.transfers": "转账:每年在账户之间转移现有余额 (例如 ASM→EPF 套利)。与储蓄不同 — 这不会增加新资金。",
+  "hiw.privacy": "隐私:一切都在您的浏览器中计算。分享链接使用 URL 哈希片段,浏览器永不发送到服务器。已保存方案仅存在于此浏览器的本地存储中。",
+
+  "saved.empty": "尚无已保存方案。使用标头中的 💾 保存按钮存储当前设置。方案仅存在于您的浏览器中 — 永不上传。",
+
+  "drain.order.hint": "提取顺序:当收入不足时,账户按提取编号升序清空 — 0 优先,然后 1、2、3。预设按现金 (0%) 优先提取,然后股票 (4%)、ASM (5%),最后 EPF (6%) — 以便最高复利账户保留最长时间。这是标准的\"最低收益优先\"提取策略。",
+
+  "expense.total.note": "部分项目会通胀;未来总额会更高 (见里程碑快照)。",
+  "mo": "月",
+  "yr": "年",
+
+  // Transfers editor
+  "Annual transfers": "年度转账",
+  "Move existing balance between accounts each year.": "每年在账户之间转移现有余额 (例如 ASM→EPF 套利)。与盈余级联不同。",
+  "Move": "转移",
+  "from": "从",
+  "+ Add transfer": "+ 添加转账",
+  "Remove": "移除",
+  "Snap to contiguous": "对齐为连续",
 };
 
 const dictionaries: Record<Lang, Dict> = { en, ms, zh };
@@ -423,7 +641,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }
 
   function t(key: string): string {
-    if (lang === "en") return key;
     return dictionaries[lang][key] ?? key;
   }
 
