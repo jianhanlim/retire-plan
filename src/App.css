@@ -68,14 +68,23 @@ header h1 {
 }
 
 .lang-picker {
-  padding: 6px 10px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--surface); color: var(--text-soft);
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 24px 8px 10px;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-mute) 50%),
+                    linear-gradient(135deg, var(--text-mute) 50%, transparent 50%);
+  background-position: right 9px center, right 5px center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  color: var(--text-soft);
   font-size: 13px; cursor: pointer;
-  transition: border-color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
   min-height: 36px;
 }
-.lang-picker:hover, .lang-picker:focus { border-color: var(--primary); outline: none; }
+.lang-picker:hover { background-color: var(--surface); border-color: var(--border); color: var(--text); }
+.lang-picker:focus { outline: none; border-color: var(--primary); }
 
 /* Pickers */
 .preset-picker {

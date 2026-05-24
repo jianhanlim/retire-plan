@@ -40,7 +40,7 @@ import {
   scenarioExists,
 } from "./lib/storage";
 import { Welcome, shouldAutoShowWelcome } from "./Welcome";
-import { useT, LANG_NAMES, type Lang } from "./lib/i18n";
+import { useT, type Lang } from "./lib/i18n";
 import "./App.css";
 
 const makeFmt = (privacy: boolean) => (n: number) =>
@@ -420,9 +420,9 @@ export default function App() {
             aria-label="Language"
             title="Language / Bahasa / 语言"
           >
-            {(Object.entries(LANG_NAMES) as [Lang, string][]).map(([k, label]) => (
-              <option key={k} value={k}>{label}</option>
-            ))}
+            <option value="en">🌐 EN</option>
+            <option value="ms">🌐 MS</option>
+            <option value="zh">🌐 中</option>
           </select>
           <button onClick={() => setWelcomeOpen(true)} title={t("How does this work?")} aria-label={t("Help")}>
             ❓ {t("Help")}
