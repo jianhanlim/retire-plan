@@ -152,6 +152,25 @@ header { position: relative; }
   background: #fff; cursor: pointer; font-size: 13px;
 }
 
+.phase-warning {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: #fef3c7; border: 1px solid #fcd34d;
+  color: #78350f; padding: 8px 12px; border-radius: 8px;
+  margin-bottom: 12px; font-size: 13px;
+}
+.phase-warning button {
+  background: #fff; border: 1px solid #92400e; color: #78350f;
+  padding: 4px 12px; border-radius: 6px; cursor: pointer;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.phase-warning button:hover { background: #fef9c3; }
+
+table input.input-error,
+input.input-error {
+  border-color: #dc2626 !important;
+  background: #fef2f2 !important;
+}
+
 .phase-strategy { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
 .badge {
   display: inline-block;

@@ -217,6 +217,62 @@ export default function App() {
     const transfers = (phase.transfers ?? []).filter((_, i) => i !== index);
     updatePhase(phaseId, { transfers });
   }
+
+  // Phase boundary validation
+  const phaseIssues = useMemo(() => {
+    const sorted = [...input.phases].sort((a, b) => a.startAge - b.startAge);
+    const byId: Record<string, { start: string; end: string }> = {};
+    for (const p of input.phases) byId[p.id] = { start: "", end: "" };
+    if (sorted.length === 0) return { byId, banner: "" as string };
+
+    const messages: string[] = [];
+    // First phase must start at plan start
+    if (sorted[0].startAge !== input.startAge) {
+      byId[sorted[0].id].start = `Should start at ${input.startAge} (plan start)`;
+      messages.push(`First phase doesn't start at age ${input.startAge}`);
+    }
+    // Last phase must end at plan end
+    const last = sorted[sorted.length - 1];
+    if (last.endAge !== input.endAge) {
+      byId[last.id].end = `Should end at ${input.endAge} (plan end)`;
+      messages.push(`Last phase doesn't end at age ${input.endAge}`);
+    }
+    // Each phase: end >= start
+    for (const p of input.phases) {
+      if (p.endAge < p.startAge) {
+        byId[p.id].end = "End age must be ≥ start age";
+        messages.push(`"${p.name}" has end age before start age`);
+      }
+    }
+    // Consecutive: each phase[i].startAge == phase[i-1].endAge + 1
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      const expected = prev.endAge + 1;
+      if (curr.startAge !== expected) {
+        const diff = curr.startAge - expected;
+        const msg = diff > 0 ? `Gap: ${diff} year(s) after "${prev.name}"` : `Overlaps "${prev.name}" by ${-diff} year(s)`;
+        byId[curr.id].start = msg;
+        messages.push(msg);
+      }
+    }
+    return { byId, banner: messages.join(" • ") };
+  }, [input.phases, input.startAge, input.endAge]);
+
+  function snapPhasesContiguous() {
+    if (input.phases.length === 0) return;
+    const sorted = [...input.phases].sort((a, b) => a.startAge - b.startAge);
+    let cursor = input.startAge;
+    const fixed = sorted.map((p, i) => {
+      const duration = Math.max(0, p.endAge - p.startAge);
+      const newStart = cursor;
+      let newEnd = newStart + duration;
+      if (i === sorted.length - 1) newEnd = input.endAge;
+      cursor = newEnd + 1;
+      return { ...p, startAge: newStart, endAge: newEnd };
+    });
+    setInput((s) => ({ ...s, phases: fixed }));
+  }
   async function copyShareLink() {
     const url = getShareableUrl(input);
     try {
@@ -465,6 +521,14 @@ export default function App() {
       <section className="grid grid-full">
         <div className="card">
           <h2>Phases</h2>
+          {phaseIssues.banner && (
+            <div className="phase-warning">
+              <span>⚠ {phaseIssues.banner}</span>
+              <button onClick={snapPhasesContiguous} title="Auto-fix: snap phases contiguous">
+                Snap to contiguous
+              </button>
+            </div>
+          )}
           <table>
             <thead>
               <tr>
@@ -503,8 +567,24 @@ export default function App() {
                           </span>
                         )}
                       </td>
-                      <td><input type="number" value={p.startAge} onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })} /></td>
-                      <td><input type="number" value={p.endAge} onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })} /></td>
+                      <td>
+                        <input
+                          type="number"
+                          value={p.startAge}
+                          onChange={(e) => updatePhase(p.id, { startAge: +e.target.value })}
+                          className={phaseIssues.byId[p.id]?.start ? "input-error" : ""}
+                          title={phaseIssues.byId[p.id]?.start || undefined}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={p.endAge}
+                          onChange={(e) => updatePhase(p.id, { endAge: +e.target.value })}
+                          className={phaseIssues.byId[p.id]?.end ? "input-error" : ""}
+                          title={phaseIssues.byId[p.id]?.end || undefined}
+                        />
+                      </td>
                       <td><input type="number" value={p.monthlyIncome} onChange={(e) => updatePhase(p.id, { monthlyIncome: +e.target.value })} /></td>
                       <td><input type="number" step="0.1" value={((p.incomeInflation ?? 0) * 100).toFixed(1)} onChange={(e) => updatePhase(p.id, { incomeInflation: +e.target.value / 100 })} /></td>
                       <td>
