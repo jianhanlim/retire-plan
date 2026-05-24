@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -12,18 +12,43 @@ import {
 } from "recharts";
 import { simulate, malaysiaPreset, type SimInput, type Account, type ExpenseItem, type Liability, type Phase } from "./lib/sim";
 import { exportToXlsx } from "./lib/exportXlsx";
+import {
+  decodeScenarioFromHash,
+  deleteScenario,
+  getShareableUrl,
+  listSavedScenarios,
+  loadScenario,
+  saveScenario,
+} from "./lib/storage";
 import "./App.css";
 
-const fmtRM = (n: number) =>
-  "RM" + Math.round(n).toLocaleString("en-MY");
+const makeFmt = (privacy: boolean) => (n: number) =>
+  privacy ? "RM•••" : "RM" + Math.round(n).toLocaleString("en-MY");
 
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
 export default function App() {
-  const [input, setInput] = useState<SimInput>(() => malaysiaPreset());
+  const [input, setInput] = useState<SimInput>(() => {
+    // Try URL hash first (shared link)
+    if (typeof window !== "undefined" && window.location.hash) {
+      const fromHash = decodeScenarioFromHash(window.location.hash);
+      if (fromHash) return fromHash;
+    }
+    return malaysiaPreset();
+  });
+  const [privacy, setPrivacy] = useState(false);
+  const [savedNames, setSavedNames] = useState<string[]>(() => listSavedScenarios());
+  const fmtRM = useMemo(() => makeFmt(privacy), [privacy]);
   const result = useMemo(() => simulate(input), [input]);
+
+  // Clear URL hash after loading so future edits aren't overwritten
+  useEffect(() => {
+    if (window.location.hash) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
 
   const milestones = [
     input.startAge,
@@ -117,6 +142,30 @@ export default function App() {
   function resetPreset() {
     setInput(malaysiaPreset());
   }
+  async function copyShareLink() {
+    const url = getShareableUrl(input);
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Share link copied to clipboard.\n\nAnyone with this link will see your scenario (computed locally in their browser).");
+    } catch {
+      prompt("Copy this link:", url);
+    }
+  }
+  function handleSave() {
+    const name = prompt("Save scenario as:");
+    if (!name) return;
+    saveScenario(name.trim(), input);
+    setSavedNames(listSavedScenarios());
+  }
+  function handleLoad(name: string) {
+    const s = loadScenario(name);
+    if (s) setInput(s);
+  }
+  function handleDelete(name: string) {
+    if (!confirm(`Delete scenario "${name}"?`)) return;
+    deleteScenario(name);
+    setSavedNames(listSavedScenarios());
+  }
 
   const colors = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
 
@@ -128,8 +177,13 @@ export default function App() {
           Year-by-year retirement simulator. Inputs never leave your browser.
         </p>
         <div className="actions">
-          <button onClick={resetPreset}>Reset to Malaysia preset</button>
+          <button onClick={resetPreset}>Reset to preset</button>
           <button onClick={() => exportToXlsx(input, result)}>Export XLSX</button>
+          <button onClick={copyShareLink}>Copy share link</button>
+          <button onClick={handleSave}>Save scenario</button>
+          <button onClick={() => setPrivacy((p) => !p)}>
+            {privacy ? "🔓 Show numbers" : "🔒 Hide numbers"}
+          </button>
         </div>
       </header>
 
@@ -157,7 +211,7 @@ export default function App() {
           <LineChart data={chartData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="age" />
-            <YAxis tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />
+            <YAxis hide={privacy} tickFormatter={(v) => `RM${(v / 1000).toFixed(0)}k`} />
             <Tooltip formatter={(v) => fmtRM(Number(v))} />
             <Legend />
             <Line type="monotone" dataKey="total" name="Total Assets" stroke="#111" strokeWidth={2.5} dot={false} />
@@ -334,6 +388,28 @@ export default function App() {
         </div>
 
         <div className="card">
+          <h2>Saved scenarios</h2>
+          {savedNames.length === 0 ? (
+            <p className="hint">
+              No saved scenarios yet. Use <b>Save scenario</b> above to store the current setup.
+              Scenarios live in your browser only — they're never uploaded.
+            </p>
+          ) : (
+            <ul className="saved-list">
+              {savedNames.map((n) => (
+                <li key={n}>
+                  <span>{n}</span>
+                  <span>
+                    <button onClick={() => handleLoad(n)}>Load</button>
+                    <button onClick={() => handleDelete(n)}>Delete</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="card">
           <h2>Time horizon</h2>
           <label>
             Start age <input type="number" value={input.startAge} onChange={(e) => setInput((s) => ({ ...s, startAge: +e.target.value }))} />
@@ -352,35 +428,45 @@ export default function App() {
               <tr>
                 <th>Age</th>
                 <th>Phase</th>
-                <th>Total</th>
+                <th className="num">Total</th>
                 {input.accounts.map((a) => (
-                  <th key={a.id}>{a.name}</th>
+                  <th key={a.id} className="num">{a.name}</th>
                 ))}
-                <th>Income</th>
-                <th>Personal</th>
-                <th>Liability</th>
-                <th>Total Spend</th>
-                <th>Portfolio Drain</th>
+                <th className="num">Income (yr)</th>
+                <th className="num">Personal (yr)</th>
+                <th className="num">Liability (yr)</th>
+                <th className="num">Total Spend (yr)</th>
+                <th className="num">Drained (yr)</th>
               </tr>
             </thead>
             <tbody>
               {result.rows
                 .filter((r) => milestones.includes(r.age))
-                .map((r) => (
-                  <tr key={r.age} className={r.shortfall > 0 ? "shortfall" : ""}>
-                    <td>{r.age}</td>
-                    <td>{r.phaseName}</td>
-                    <td><b>{fmtRM(r.totalAssets)}</b></td>
-                    {r.accounts.map((a) => (
-                      <td key={a.id}>{fmtRM(a.balance)}</td>
-                    ))}
-                    <td>{fmtRM(r.income)}</td>
-                    <td>{fmtRM(r.expenseTotal)}</td>
-                    <td>{fmtRM(r.liabilityTotal)}</td>
-                    <td>{fmtRM(r.totalSpend)}</td>
-                    <td>{fmtRM(r.portfolioOutflow)}</td>
-                  </tr>
-                ))}
+                .map((r) => {
+                  const isYear0 = r.yearIndex === 0;
+                  return (
+                    <tr key={r.age} className={r.shortfall > 0 ? "shortfall" : ""}>
+                      <td>{r.age}</td>
+                      <td>{r.phaseName}</td>
+                      <td className="num"><b>{fmtRM(r.totalAssets)}</b></td>
+                      {r.accounts.map((a) => (
+                        <td key={a.id} className="num">{fmtRM(a.balance)}</td>
+                      ))}
+                      <td className="num">{isYear0 ? "—" : fmtRM(r.income)}</td>
+                      <td className="num">{isYear0 ? "—" : fmtRM(r.expenseTotal)}</td>
+                      <td className="num">{isYear0 ? "—" : fmtRM(r.liabilityTotal)}</td>
+                      <td className="num">{isYear0 ? "—" : fmtRM(r.totalSpend)}</td>
+                      <td className="num">
+                        {isYear0 ? "—" : fmtRM(r.portfolioDrained)}
+                        {r.shortfall > 0 && (
+                          <span className="shortfall-tag" title={`Shortfall ${fmtRM(r.shortfall)} — portfolio empty`}>
+                            ⚠
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

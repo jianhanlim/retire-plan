@@ -67,7 +67,11 @@ export type YearRow = {
   expenseTotal: number;
   liabilityTotal: number;
   totalSpend: number;
+  // Portfolio outflow REQUESTED (= max(0, totalSpend - income))
   portfolioOutflow: number;
+  // Portfolio outflow ACTUALLY taken from accounts (= portfolioOutflow - shortfall).
+  // Differs from portfolioOutflow only when the portfolio empties mid-year.
+  portfolioDrained: number;
   accounts: { id: string; balance: number; principal: number }[];
   totalAssets: number;
   totalPrincipal: number;
@@ -199,6 +203,7 @@ export function simulate(input: SimInput): SimResult {
       acct.principal = Math.min(acct.principal, acct.balance);
     }
     const shortfall = remaining;
+    const portfolioDrained = portfolioOutflow - shortfall;
     if (shortfall > 0 && runsOutAtAge === null) runsOutAtAge = age;
 
     // Surplus savings: if a target account is set, deposit surplus there
@@ -250,6 +255,7 @@ export function simulate(input: SimInput): SimResult {
       liabilityTotal,
       totalSpend: expenseTotal + liabilityTotal,
       portfolioOutflow,
+      portfolioDrained,
       accounts: accts.map((a) => ({
         id: a.id,
         balance: a.balance,
