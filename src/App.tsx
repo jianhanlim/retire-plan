@@ -1072,7 +1072,6 @@ export default function App() {
               <li><b>Monthly/quarterly compounding</b> — annual only</li>
               <li><b>Goal-seeking solver</b> ("what income do I need to last to 80?") and tornado / sensitivity analysis</li>
               <li><b>Scenario comparison</b> side-by-side</li>
-              <li><b>Buying new assets mid-plan</b> — Fixed Assets must exist at plan start; only sale events are supported</li>
             </ul>
           </div>
         </div>
