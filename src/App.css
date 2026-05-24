@@ -378,7 +378,16 @@ table button:hover { color: var(--danger); background: var(--danger-bg); }
 
 /* Snapshot specific */
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.snapshot { min-width: 720px; }
+.snapshot { min-width: 720px; border-collapse: separate; border-spacing: 0; }
+.snapshot thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  z-index: 2;
+  /* sticky-table cells need explicit bottom border (border-collapse: separate breaks normal borders) */
+  border-bottom: 1px solid var(--border-strong);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
 .snapshot td.num, .snapshot th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .snapshot tr.shortfall { background: var(--danger-bg); }
 .shortfall-tag { margin-left: 4px; color: var(--danger); cursor: help; }
@@ -665,10 +674,9 @@ footer .byline { color: var(--text); margin-bottom: 6px; font-weight: 500; }
   /* Always show the inline transfers editor for the phase that has expandedPhase set */
   .phases-card tr.expanded ~ tr.phase-expanded td { display: block !important; }
 
-  /* Snapshot: keep table but force horizontal scroll & sticky Age */
-  .snapshot th:first-child, .snapshot td:first-child {
-    position: sticky; left: 0; background: var(--surface); z-index: 1;
-  }
+  /* Snapshot: sticky Age column during horizontal scroll */
+  .snapshot td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+  .snapshot thead th:first-child { left: 0; z-index: 3; }
   .snapshot tr.shortfall td:first-child { background: var(--danger-bg); }
   .snapshot tbody tr:hover td:first-child { background: var(--surface-2); }
 

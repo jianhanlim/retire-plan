@@ -1040,37 +1040,39 @@ export default function App() {
           <div>
             <h3>✓ Handles</h3>
             <ul>
-              <li>Multiple accounts with different return rates &amp; drain order</li>
-              <li>Expense buckets with per-line inflation &amp; monthly caps</li>
-              <li>Liabilities with fixed end-age (mortgage, loans)</li>
-              <li>Life phases with monthly income &amp; optional income inflation (raises)</li>
-              <li>Surplus auto-savings: income above expenses can flow into any account</li>
-              <li>Annual top-ups (e.g. EPF self-contribution) &amp; inter-account transfers (arbitrage)</li>
-              <li>Principal vs interest tracking — see when you start eating into capital</li>
-              <li>Assumption toggles for the two ambiguous modeling choices</li>
-              <li>XLSX export of the full year-by-year simulation</li>
-              <li>Save scenarios in your browser, share via URL (hash fragment, never sent to a server), privacy mode for screenshots</li>
-              <li>Auto-save: your edits survive a page refresh</li>
+              <li><b>Profile × Strategy</b>: 5 life profiles (Fresh Graduate → Pre-Retirement) × 3 saving strategies = 15 ready-made starting points</li>
+              <li>Multiple <b>accounts</b> with different return rates, drain order, and annual top-up caps (e.g. EPF capped at RM100k/yr)</li>
+              <li><b>Expense buckets</b> with per-line inflation and monthly caps; running total shown</li>
+              <li><b>Liabilities</b> with start-age, end-age, and inflation (mortgages, loans)</li>
+              <li><b>Fixed Assets</b> (house, car) — appreciate over time, optionally linked to a loan; selling pays off the loan and injects net cash via the cascade</li>
+              <li><b>Life phases</b> with monthly income, optional income inflation (raises); start ages auto-snap so phases stay contiguous</li>
+              <li><b>Surplus cascade</b>: income above expenses flows into your preferred account (e.g. EPF) up to its cap, then overflows to the next-highest-rate account, finally to a 0% Cash account</li>
+              <li><b>Inter-account transfers</b> (e.g. ASM → EPF arbitrage) on a per-phase basis</li>
+              <li><b>Principal vs interest</b> tracking — see when you start eating into capital</li>
+              <li>Two <b>assumption toggles</b> for ambiguous modeling choices (liability end inclusive; top-up interest timing)</li>
+              <li><b>Phase validation</b>: detects gaps/overlaps with a one-click "snap to contiguous" fix</li>
+              <li><b>Milestone snapshot</b> with toggle to expand to year-by-year detail</li>
+              <li><b>XLSX export</b> of the full year-by-year simulation with assumptions sheet</li>
+              <li><b>Privacy</b>: all math runs in your browser; share via URL hash (never sent to server); auto-save survives refresh; "Hide numbers" mode for screenshots; save/load named scenarios in localStorage</li>
             </ul>
           </div>
           <div>
             <h3>✗ Does not handle</h3>
             <ul>
-              <li>Migrating to another country in retirement (currency, tax, cost-of-living change)</li>
-              <li>Stochastic returns / market crashes / sequence-of-returns risk (returns are constant)</li>
-              <li>Tax (income tax, capital gains, withholding, tax-deferred accounts)</li>
-              <li>One-off events: lump-sum inheritance, mortgage early settlement, weddings, kids' tuition</li>
-              <li>Income that varies <i>within</i> a phase (mid-phase raises, bonuses, sabbaticals) — phase income is flat or inflates at a fixed rate</li>
-              <li>Rental, dividend, or pension/annuity income streams (workaround: model as a phase with that income)</li>
-              <li>Property appreciation, sale, downsizing (house is a liability only)</li>
-              <li>Spouse / dependent finances (single portfolio only)</li>
-              <li>Account-specific rules: EPF Acc 1/2/3 split, age-55 unlock, RM1.3M withdrawal threshold, RMDs, CPF quirks</li>
-              <li>Account access locks (all accounts are fully liquid in the sim)</li>
-              <li>Top-up caps (e.g. EPF self-contribution capped at RM100k/yr — you can enter any amount)</li>
-              <li>Healthcare shocks beyond inflated premiums</li>
-              <li>Monthly compounding (annual only)</li>
-              <li>Goal-seeking ("when can I retire?") and Monte Carlo sensitivity</li>
-              <li>Scenario comparison side-by-side</li>
+              <li><b>Migrating to another country</b> in retirement (currency, tax, cost-of-living change)</li>
+              <li><b>Stochastic returns</b> / market crashes / sequence-of-returns risk — returns are constant year-over-year, no Monte Carlo</li>
+              <li><b>Tax</b> — no income tax, capital gains, withholding, or tax-deferred account rules</li>
+              <li><b>One-off cash events</b>: lump-sum inheritance, large gifts, lottery, severance (workaround: temporarily inflate income for one year)</li>
+              <li><b>Income variation within a phase</b> (bonuses, sabbaticals, mid-phase raises) — phase income is flat or inflates at a fixed rate; split into more phases instead</li>
+              <li><b>Recurring side income</b> (rental, dividends from a separate stream, pension/annuity) as first-class entities — workaround: model as a phase with that monthly income</li>
+              <li><b>Spouse / dependent finances</b> — single-portfolio simulation; combine manually</li>
+              <li><b>Account-specific local rules</b>: EPF Account 1/2/3 split, age-55 unlock, RM1.3M withdrawal threshold, US RMDs, CPF quirks</li>
+              <li><b>Account access locks</b> by age — all accounts are fully liquid in the sim</li>
+              <li><b>Healthcare shocks</b> beyond inflated insurance premiums (no out-of-pocket hospital bills)</li>
+              <li><b>Monthly/quarterly compounding</b> — annual only</li>
+              <li><b>Goal-seeking solver</b> ("what income do I need to last to 80?") and tornado / sensitivity analysis</li>
+              <li><b>Scenario comparison</b> side-by-side</li>
+              <li><b>Buying new assets mid-plan</b> — Fixed Assets must exist at plan start; only sale events are supported</li>
             </ul>
           </div>
         </div>
