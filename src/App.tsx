@@ -904,10 +904,10 @@ export default function App() {
                   <th key={a.id} className="num">{a.name}</th>
                 ))}
                 <th className="num">Income (yr)</th>
-                <th className="num">Personal (yr)</th>
-                <th className="num">Liability (yr)</th>
-                <th className="num">Total Spend (yr)</th>
-                <th className="num">Drained (yr)</th>
+                <th className="num" title="Sum of your personal expenses (food, insurance, etc.) for that year — excludes liabilities">Living costs (yr)</th>
+                <th className="num" title="Liability payments (mortgage, loans) for that year">Liability (yr)</th>
+                <th className="num" title="Living costs + Liability">Total Spend (yr)</th>
+                <th className="num" title="What the portfolio actually paid out (= Total Spend − Income, or less if portfolio empties)">Drained (yr)</th>
               </tr>
             </thead>
             <tbody>
